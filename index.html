@@ -13,10 +13,25 @@
     <!-- FontAwesome for Icons -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     
-    <!-- SYSTEM UPGRADE: localForage (Untuk Kapasitas Penyimpanan Besar) -->
+    <!-- SYSTEM UPGRADE: FIREBASE REALTIME DATABASE (Untuk Sinkronisasi Antar HP/Laptop) -->
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-database-compat.js"></script>
+    
+    <!-- localForage hanya dipakai sementara untuk menarik data lama ke database baru -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/localforage/1.10.0/localforage.min.js"></script>
 
     <style>
+        /* Layar Login Utama */
+        #loginOverlay {
+            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+            background: linear-gradient(135deg, #1e3c72 0%, #2a5298 100%);
+            z-index: 9999; display: flex; justify-content: center; align-items: center;
+        }
+        .login-card {
+            background: white; padding: 40px; border-radius: 20px;
+            box-shadow: 0 15px 35px rgba(0,0,0,0.3); width: 100%; max-width: 400px; text-align: center;
+        }
+
         /* Desain Background Dashboard */
         body { 
             background: linear-gradient(135deg, #e0eafc 0%, #cfdef3 100%);
@@ -141,11 +156,24 @@
 </head>
 <body>
 
+<!-- OVERLAY LOGIN MASUK WEBSITE -->
+<div id="loginOverlay">
+    <div class="login-card">
+        <div class="mb-3 text-primary"><i class="fas fa-shield-alt fa-3x"></i></div>
+        <h4 class="fw-bold text-dark mb-3">Autentikasi Sistem SPK</h4>
+        <p class="text-muted small mb-4">Masukkan password akses untuk membuka aplikasi kontrol project.</p>
+        <div class="mb-3">
+            <input type="password" id="appPasswordInput" class="form-control text-center py-2" placeholder="Password Akses..." onkeypress="if(event.keyCode===13) checkAppLogin()">
+        </div>
+        <button class="btn btn-primary w-100 fw-bold py-2 rounded-pill shadow-sm" onclick="checkAppLogin()">Masuk Aplikasi</button>
+    </div>
+</div>
+
 <!-- Menu Navigasi Header -->
 <nav class="navbar navbar-expand-lg navbar-dark navbar-custom">
     <div class="container-fluid px-4">
         <a class="navbar-brand fw-bold fs-4" href="#">
-            <i class="fas fa-tshirt text-warning me-2"></i> Tauhid Konfeksi Sablon
+            <i class="fas fa-tshirt text-warning me-2"></i> Tauhid Konfeksi Sablon (Cloud)
         </a>
         <div class="d-flex">
             <!-- Tombol Login Khusus Admin -->
@@ -178,10 +206,10 @@
         <div class="status-chip mb-4">
             <div class="fs-3 text-info"><i class="fas fa-info-circle"></i></div>
             <div>
-                <h6 class="mb-1 fw-bold text-dark">Informasi Sistem</h6>
+                <h6 class="mb-1 fw-bold text-dark">Informasi Sistem Live Cloud</h6>
                 <p class="mb-0 text-muted" style="font-size: 14px;">
                     Akses Anda: <span id="modeStatus" class="badge bg-danger ms-1">Viewer (Hanya Lihat)</span><br>
-                    Viewer dapat melihat seluruh riwayat, dokumen, dan berdiskusi di obrolan. HANYA ADMIN yang dapat menambah/mengedit data project.
+                    Data terhubung ke internet secara Real-Time. Karyawan dapat mengecek SPK di perangkat manapun.
                 </p>
             </div>
         </div>
@@ -260,7 +288,7 @@
                     <div class="col"><label class="form-label fw-bold text-muted">Target Selesai</label><input type="date" class="form-control bg-light border-0" id="endDate" required></div>
                 </div>
                 <div class="mb-4"><label class="form-label fw-bold text-muted">Upload SPK (Opsional)</label><input type="file" class="form-control bg-light border-0" id="spkFile" accept=".pdf,.doc,.docx,.jpg,.jpeg,.png"><small class="text-danger mt-1 d-block">Maksimal 5 MB per File</small></div>
-                <button type="submit" class="btn btn-primary w-100 fw-bold py-3 fs-5 rounded-pill shadow">Simpan Data</button>
+                <button type="submit" class="btn btn-primary w-100 fw-bold py-3 fs-5 rounded-pill shadow">Simpan Data ke Server</button>
             </form>
         </div>
     </div></div>
@@ -302,7 +330,7 @@
                 <div class="mb-3"><label class="form-label fw-bold text-muted">Persentase Pekerjaan (%)</label><input type="number" class="form-control form-control-lg bg-light border-0" id="updateProgress" min="0" max="100" required></div>
                 <div class="mb-3"><label class="form-label fw-bold text-muted">Catatan Kendala/Info</label><textarea class="form-control bg-light border-0" id="updateNote" rows="2"></textarea></div>
                 <div class="mb-4"><label class="form-label fw-bold text-muted">Upload Lampiran (Opsional)</label><input type="file" class="form-control bg-light border-0" id="updateFile"><small class="text-danger mt-1 d-block">Maksimal 5 MB per File</small></div>
-                <button type="submit" class="btn btn-warning w-100 fw-bold py-3 fs-5 rounded-pill shadow-sm text-dark">Simpan Pembaruan</button>
+                <button type="submit" class="btn btn-warning w-100 fw-bold py-3 fs-5 rounded-pill shadow-sm text-dark">Simpan ke Server</button>
             </form>
         </div>
     </div></div>
@@ -338,6 +366,44 @@
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
 
 <script>
+    // ==========================================
+    // MASUKKAN KODE FIREBASE ANDA DI SINI
+    // ==========================================
+    const firebaseConfig = {
+        apiKey: "ISI_DENGAN_API_KEY_ANDA",
+        authDomain: "ISI_DENGAN_AUTH_DOMAIN_ANDA",
+        databaseURL: "ISI_DENGAN_DATABASE_URL_ANDA",
+        projectId: "ISI_DENGAN_PROJECT_ID_ANDA",
+        storageBucket: "ISI_DENGAN_STORAGE_BUCKET_ANDA",
+        messagingSenderId: "ISI_DENGAN_MESSAGING_SENDER_ID_ANDA",
+        appId: "ISI_DENGAN_APP_ID_ANDA"
+    };
+
+    // Inisialisasi Firebase Database
+    firebase.initializeApp(firebaseConfig);
+    const database = firebase.database();
+
+
+    // --- AUTENTIKASI PASSWORD MASUK APLIKASI ---
+    function checkAppLogin() {
+        const inputPass = document.getElementById('appPasswordInput').value;
+        if (inputPass === "tauhid2026") {
+            document.getElementById('loginOverlay').style.display = 'none';
+            sessionStorage.setItem('isAppUnlocked', 'true');
+            loadData();
+        } else {
+            alert("Password Akses Salah!");
+            document.getElementById('appPasswordInput').value = '';
+        }
+    }
+
+    window.addEventListener('DOMContentLoaded', () => {
+        if (sessionStorage.getItem('isAppUnlocked') === 'true') {
+            document.getElementById('loginOverlay').style.display = 'none';
+            loadData();
+        }
+    });
+
     // --- AUTENTIKASI ADMIN & VIEWER CONTROLS ---
     let isAdmin = sessionStorage.getItem('isAdminUser') === 'true';
     let warningShown = { Tasikmalaya: false, Makassar: false };
@@ -399,27 +465,27 @@
         loadData();
     }
 
-    // --- PEMULIHAN DATA LAMA (MIGRASI DARI LOCAL STORAGE) ---
-    async function migrateOldData() {
-        try {
-            const localTasik = localStorage.getItem('spkData_Tasikmalaya');
-            if (localTasik) {
-                await localforage.setItem('spkData_Tasikmalaya', JSON.parse(localTasik));
-                localStorage.removeItem('spkData_Tasikmalaya');
-            }
-            const localMakassar = localStorage.getItem('spkData_Makassar');
-            if (localMakassar) {
-                await localforage.setItem('spkData_Makassar', JSON.parse(localMakassar));
-                localStorage.removeItem('spkData_Makassar');
-            }
-        } catch (e) { console.error("Migrasi lokal gagal:", e); }
-    }
 
-    // --- AMBIL DATA DARI MEMORI PERANGKAT ---
+    // --- FUNGSI PENARIKAN DATA KE SERVER CLOUD (FIREBASE) ---
     async function loadData() {
-        await migrateOldData();
-        localforage.getItem(`spkData_${currentLocation}`).then(function(value) {
-            spkData = value || [];
+        if (sessionStorage.getItem('isAppUnlocked') !== 'true') return;
+
+        // Trik Otomatis Mengunggah file tersangkut di HP ke Firebase Server saat dibuka pertama kali
+        let tersangkutTasik = await localforage.getItem('spkData_Tasikmalaya');
+        if(tersangkutTasik && tersangkutTasik.length > 0) {
+            database.ref('spkData/Tasikmalaya').set(tersangkutTasik);
+            localforage.removeItem('spkData_Tasikmalaya');
+        }
+        let tersangkutMakassar = await localforage.getItem('spkData_Makassar');
+        if(tersangkutMakassar && tersangkutMakassar.length > 0) {
+            database.ref('spkData/Makassar').set(tersangkutMakassar);
+            localforage.removeItem('spkData_Makassar');
+        }
+
+        // Mulai ambil data dari Server Online secara Real-Time
+        database.ref('spkData/' + currentLocation).on('value', (snapshot) => {
+            spkData = snapshot.val() || [];
+            if(!Array.isArray(spkData)) spkData = Object.values(spkData); // Mencegah error jika data kosong di tengah
             spkData.sort((a, b) => a.spkNo.localeCompare(b.spkNo, undefined, { numeric: true, sensitivity: 'base' }));
             document.getElementById('searchInput').value = '';
             updateUI(); 
@@ -427,16 +493,19 @@
             checkUnupdatedAlarms();
         });
 
-        localforage.getItem(`chatData_${currentLocation}`).then(function(val) {
-            chatMessages = val || [];
+        // Ambil pesan Live Chat dari server Online
+        database.ref('chatData/' + currentLocation).on('value', (snapshot) => {
+            chatMessages = snapshot.val() || [];
+            if(!Array.isArray(chatMessages)) chatMessages = Object.values(chatMessages);
             renderChatMessages();
         });
     }
 
+    // --- FUNGSI MENGIRIM DATA BARU KE SERVER ONLINE ---
     function saveData() { 
         spkData.sort((a, b) => a.spkNo.localeCompare(b.spkNo, undefined, { numeric: true, sensitivity: 'base' }));
-        localforage.setItem(`spkData_${currentLocation}`, spkData).catch(function(err) {
-            alert("Penyimpanan perangkat penuh!");
+        database.ref('spkData/' + currentLocation).set(spkData).catch((error) => {
+            alert("Gagal menyambung ke server Internet: " + error.message);
         });
     }
 
@@ -457,7 +526,7 @@
     }
 
     function saveChatData() {
-        localforage.setItem(`chatData_${currentLocation}`, chatMessages).catch(function(err) { console.error(err); });
+        database.ref('chatData/' + currentLocation).set(chatMessages);
     }
 
     function renderChatMessages() {
@@ -492,14 +561,13 @@
             time: timeStr,
             timestamp: now.getTime()
         });
-        saveChatData();
-        renderChatMessages();
+        saveChatData(); // Lempar chat langsung ke cloud
         input.value = '';
     }
 
     // PENCEGAHAN EDIT OLEH VIEWER PADA NOMOR SPK
     function updateSpkNo(index, newSpkValue) {
-        if (!isAdmin) return; // Menghentikan viewer merubah data
+        if (!isAdmin) return; 
         const cleanValue = newSpkValue.trim();
         if (cleanValue === "") {
             alert("Nomor SPK tidak boleh kosong!");
@@ -643,14 +711,11 @@
                 else if (diffDays < 0) deadlineBadge = `<br><span class="badge bg-danger mt-2 px-2 py-1 border border-danger shadow-sm"><i class="fas fa-exclamation-circle"></i> Telat ${Math.abs(diffDays)} Hari</span>`;
             }
 
-            // MENGHILANGKAN FITUR EDIT BAGI VIEWER
             let editableAttr = isAdmin ? `contenteditable="true" title="Klik untuk merubah Nomor SPK" onblur="updateSpkNo(${index}, this.innerText)" onkeypress="if(event.keyCode===13) { event.preventDefault(); this.blur(); }"` : '';
             let editIcon = isAdmin ? `<i class="fas fa-pencil-alt editable-icon"></i>` : '';
             
-            // TOMBOL AKSI DISESUAIKAN ROLE (Semua bisa lihat Riwayat)
             let actionButtons = `<button class="btn btn-sm btn-info text-white mb-2 shadow-sm rounded-pill" onclick="openHistoryModal(${index})"><i class="fas fa-history me-1"></i> Riwayat</button>`;
             
-            // Hanya ADMIN yang melihat tombol Edit/Update dan Hapus
             if (isAdmin) {
                 actionButtons += `
                     <button class="btn btn-sm btn-warning mb-2 shadow-sm rounded-pill text-dark fw-bold" onclick="openUpdateModal(${index})"><i class="fas fa-edit me-1"></i> Update</button>
@@ -690,10 +755,9 @@
         if(visibleCount === 0) tbody.innerHTML = `<tr><td colspan="8" class="text-center text-muted py-5"><i class="fas fa-search fa-3x mb-3 opacity-25"></i><br>Tidak ada data SPK yang ditemukan.</td></tr>`;
     }
 
-    // PENCEGAHAN EDIT OLEH VIEWER PADA SAAT SUBMIT
     document.getElementById('addSpkForm').addEventListener('submit', async function(e) {
         e.preventDefault(); 
-        if(!isAdmin) return; // Menghentikan jika bukan Admin
+        if(!isAdmin) return; 
         const fileInput = document.getElementById('spkFile'); let fileData = null;
         if (fileInput.files.length > 0) { if (!validateFile(fileInput.files[0])) return; fileData = await getBase64(fileInput.files[0]); }
         
@@ -704,11 +768,11 @@
             progress: 0, lastMonthUpdate: 'Belum ada', lastUpdateTimestamp: Date.now(), spkFile: fileData, history: [] 
         });
         saveData(); this.reset(); bootstrap.Modal.getInstance(document.getElementById('addSpkModal')).hide(); 
-        document.getElementById('searchInput').value = ''; renderTable(); checkDeadlineAlarms(); 
+        document.getElementById('searchInput').value = ''; 
     });
 
     function openUpdateModal(index) {
-        if(!isAdmin) return; // Menghentikan viewer membuka modal edit
+        if(!isAdmin) return; 
         const spk = spkData[index]; document.getElementById('updateId').value = index; document.getElementById('updateStatus').value = spk.status;
         document.getElementById('updateTahap').value = spk.tahap || 'Belum Mulai'; document.getElementById('updateProgress').value = spk.progress;
         document.getElementById('updateNote').value = ''; document.getElementById('updateFile').value = ''; 
@@ -718,7 +782,7 @@
 
     document.getElementById('updateSpkForm').addEventListener('submit', async function(e) {
         e.preventDefault(); 
-        if(!isAdmin) return; // Menghentikan jika bukan Admin
+        if(!isAdmin) return; 
         const index = document.getElementById('updateId').value, inStatus = document.getElementById('updateStatus').value, inTahap = document.getElementById('updateTahap').value, inProg = document.getElementById('updateProgress').value;
         let finStatus = (inProg == 100 || inTahap === '8. Siap Diterima Klien') ? 'Selesai' : inStatus; let finProg = inTahap === '8. Siap Diterima Klien' ? 100 : inProg; 
         const fileInput = document.getElementById('updateFile'); let fileData = null;
@@ -729,11 +793,9 @@
         spkData[index].history.push({ month: document.getElementById('updateMonth').value, date: new Date().toLocaleDateString('id-ID'), status: finStatus, tahap: inTahap, progress: finProg, note: document.getElementById('updateNote').value, updateFile: fileData });
         
         saveData(); bootstrap.Modal.getInstance(document.getElementById('updateModal')).hide(); 
-        renderTable(document.getElementById('searchInput').value.toLowerCase()); checkDeadlineAlarms(); 
     });
 
     function openHistoryModal(index) {
-        // Bebas diakses semua orang
         const spk = spkData[index]; document.getElementById('historyProjectName').innerText = spk.projectName; document.getElementById('historySpkNo').innerText = 'No SPK: ' + spk.spkNo;
         const tbody = document.getElementById('historyTableBody'); tbody.innerHTML = '';
         if(!spk.history || spk.history.length === 0) tbody.innerHTML = `<tr><td colspan="4" class="text-center text-muted py-4"><i class="fas fa-history fa-2x opacity-25 mb-2"></i><br>Belum ada riwayat tercatat.</td></tr>`;
@@ -751,15 +813,18 @@
     }
 
     function deleteSpk(index) {
-        if(!isAdmin) return; // Menghentikan jika bukan Admin
+        if(!isAdmin) return; 
         if(confirm(`TINDAKAN PERMANEN!\nYakin ingin menghapus SPK ini beserta seluruh file lampiran dan riwayatnya?`)) { 
-            spkData.splice(index, 1); saveData(); renderTable(document.getElementById('searchInput').value.toLowerCase()); checkDeadlineAlarms(); 
+            spkData.splice(index, 1); saveData(); 
         }
     }
 
-    // Inisialisasi awal
+    // Inisialisasi awal saat web dibuka
     window.onload = () => {
-        loadData();
+        // Jika belum terkunci, abaikan, jika sudah terkunci, langsung buka Tasikmalaya
+        if (sessionStorage.getItem('isAppUnlocked') === 'true') {
+            switchLocation('Tasikmalaya');
+        }
     };
 </script>
 </body>
