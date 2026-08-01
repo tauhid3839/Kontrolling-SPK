@@ -170,8 +170,7 @@
                     <li><h6 class="dropdown-header text-center fw-bold fs-6 text-muted">PILIH CABANG</h6></li>
                     <li><hr class="dropdown-divider"></li>
                     <li><a class="dropdown-item py-3 fw-bold text-center rounded mb-1 dropdown-hover" href="#" onclick="switchLocation('Tasikmalaya')"><i class="fas fa-building text-danger me-2"></i> Tasikmalaya</a></li>
-                    <li><a class="dropdown-item py-3 fw-bold text-center rounded mb-1 dropdown-hover" href="#" onclick="switchLocation('Makassar')"><i class="fas fa-building text-danger me-2"></i> Makassar</a></li>
-                    <li><a class="dropdown-item py-3 fw-bold text-center rounded dropdown-hover" href="#" onclick="switchLocation('Bandung')"><i class="fas fa-building text-danger me-2"></i> Bandung</a></li>
+                    <li><a class="dropdown-item py-3 fw-bold text-center rounded dropdown-hover" href="#" onclick="switchLocation('Makassar')"><i class="fas fa-building text-danger me-2"></i> Makassar</a></li>
                 </ul>
             </div>
         </div>
@@ -341,7 +340,7 @@
 <script>
     // --- AUTENTIKASI ADMIN & VIEWER CONTROLS ---
     let isAdmin = sessionStorage.getItem('isAdminUser') === 'true';
-    let warningShown = { Tasikmalaya: false, Makassar: false, Bandung: false };
+    let warningShown = { Tasikmalaya: false, Makassar: false };
 
     function toggleLogin() {
         if (isAdmin) {
