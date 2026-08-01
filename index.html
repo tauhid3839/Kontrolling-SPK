@@ -17,17 +17,6 @@
     <script src="https://cdnjs.cloudflare.com/ajax/libs/localforage/1.10.0/localforage.min.js"></script>
 
     <style>
-        /* Layar Login Utama */
-        #loginOverlay {
-            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
-            background: linear-gradient(135deg, #1e3c72 0%, #2a5298 100%);
-            z-index: 9999; display: flex; justify-content: center; align-items: center;
-        }
-        .login-card {
-            background: white; padding: 40px; border-radius: 20px;
-            box-shadow: 0 15px 35px rgba(0,0,0,0.3); width: 100%; max-width: 400px; text-align: center;
-        }
-
         /* Desain Background Dashboard */
         body { 
             background: linear-gradient(135deg, #e0eafc 0%, #cfdef3 100%);
@@ -113,9 +102,7 @@
         .bg-solid-biru { background-color: #0d6efd !important; border-left: 4px solid #084298 !important; }
         .bg-solid-hijau { background-color: #198754 !important; border-left: 4px solid #0f5132 !important; }
 
-        /* =========================================
-           UI CHAT BERGAYA WHATSAPP 
-           ========================================= */
+        /* UI CHAT BERGAYA WHATSAPP */
         .chat-fab {
             position: fixed; bottom: 30px; right: 30px; width: 65px; height: 65px;
             background-color: #25d366; color: white; border-radius: 50%; display: flex;
@@ -154,19 +141,6 @@
 </head>
 <body>
 
-<!-- OVERLAY LOGIN MASUK WEBSITE -->
-<div id="loginOverlay">
-    <div class="login-card">
-        <div class="mb-3 text-primary"><i class="fas fa-shield-alt fa-3x"></i></div>
-        <h4 class="fw-bold text-dark mb-3">Autentikasi Sistem SPK</h4>
-        <p class="text-muted small mb-4">Masukkan password akses untuk membuka aplikasi kontrol project.</p>
-        <div class="mb-3">
-            <input type="password" id="appPasswordInput" class="form-control text-center py-2" placeholder="Password Akses..." onkeypress="if(event.keyCode===13) checkAppLogin()">
-        </div>
-        <button class="btn btn-primary w-100 fw-bold py-2 rounded-pill shadow-sm" onclick="checkAppLogin()">Masuk Aplikasi</button>
-    </div>
-</div>
-
 <!-- Menu Navigasi Header -->
 <nav class="navbar navbar-expand-lg navbar-dark navbar-custom">
     <div class="container-fluid px-4">
@@ -174,7 +148,8 @@
             <i class="fas fa-tshirt text-warning me-2"></i> Tauhid Konfeksi Sablon
         </a>
         <div class="d-flex">
-            <button id="loginBtn" class="btn btn-light btn-sm fw-bold px-4 rounded-pill" onclick="toggleLogin()">
+            <!-- Tombol Login Khusus Admin -->
+            <button id="loginBtn" class="btn btn-light btn-sm fw-bold px-4 rounded-pill shadow-sm" onclick="toggleLogin()">
                 <i class="fas fa-user-shield text-primary"></i> <span id="loginText" class="text-primary">Login Admin</span>
             </button>
         </div>
@@ -184,9 +159,7 @@
 <div class="container-fluid px-4 py-2">
     <div class="main-wrapper">
         
-        <!-- ==========================================
-             TOMBOL MENU UTAMA (CABANG) DI TENGAH 
-             ========================================== -->
+        <!-- TOMBOL MENU UTAMA (CABANG) DI TENGAH -->
         <div class="text-center mb-5 mt-2">
             <div class="dropdown d-inline-block">
                 <button class="btn btn-danger btn-lg dropdown-toggle shadow-lg pulse-menu-btn" type="button" data-bs-toggle="dropdown" aria-expanded="false" style="font-size: 1.8rem; font-weight: 900; padding: 15px 80px; border-radius: 50px; letter-spacing: 2px;">
@@ -202,15 +175,14 @@
                 </ul>
             </div>
         </div>
-        <!-- ========================================== -->
 
         <div class="status-chip mb-4">
             <div class="fs-3 text-info"><i class="fas fa-info-circle"></i></div>
             <div>
                 <h6 class="mb-1 fw-bold text-dark">Informasi Sistem</h6>
                 <p class="mb-0 text-muted" style="font-size: 14px;">
-                    Mode Saat Ini: <span id="modeStatus" class="badge bg-danger ms-1">Viewer (Hanya Lihat)</span><br>
-                    Data tersimpan aman dengan kapasitas besar. Maksimal 5 MB per file. Gunakan fitur obrolan di pojok kanan bawah.
+                    Akses Anda: <span id="modeStatus" class="badge bg-danger ms-1">Viewer (Hanya Lihat)</span><br>
+                    Viewer dapat melihat seluruh riwayat, dokumen, dan berdiskusi di obrolan. HANYA ADMIN yang dapat menambah/mengedit data project.
                 </p>
             </div>
         </div>
@@ -219,6 +191,7 @@
             <h3 class="fw-extrabold text-dark mb-0" id="mainTitle">
                 <i class="fas fa-clipboard-list text-primary me-2"></i> Kontrol SPK - Tasikmalaya
             </h3>
+            <!-- Tombol Tambah SPK (Otomatis Disembunyikan Jika Bukan Admin) -->
             <button id="btnAddSpk" class="btn btn-primary fw-bold px-4 py-2" data-bs-toggle="modal" data-bs-target="#addSpkModal" style="display: none;">
                 <i class="fas fa-plus me-1"></i> Buat SPK Baru
             </button>
@@ -240,7 +213,7 @@
                 <thead>
                     <tr>
                         <th width="4%" class="text-center">No.</th>
-                        <th width="10%">No. SPK <small class="text-warning opacity-75">(Edit)</small></th>
+                        <th width="10%">No. SPK <small class="text-warning opacity-75" id="editLabel">(Edit Admin)</small></th>
                         <th width="22%">Nama Project & Dokumen</th>
                         <th width="14%">Vendor / Klien</th>
                         <th width="16%">Timeline Pekerjaan</th>
@@ -255,32 +228,23 @@
     </div>
 </div>
 
-<!-- ==========================================
-     FITUR CHAT / MENU PERCAKAPAN GAYA WHATSAPP 
-     ========================================== -->
-<!-- Tombol Floating -->
+<!-- FITUR CHAT / MENU PERCAKAPAN GAYA WHATSAPP -->
 <button class="chat-fab" onclick="toggleChatPanel()">
     <i class="fab fa-whatsapp fa-2x"></i>
 </button>
-
-<!-- Panel Obrolan -->
 <div class="chat-panel" id="chatPanel">
     <div class="chat-header">
         <div><i class="fas fa-comments me-2"></i> Diskusi Tim - <span id="chatBranchName">Tasikmalaya</span></div>
         <button class="btn-close btn-close-white" style="font-size: 0.8rem;" onclick="toggleChatPanel()"></button>
     </div>
-    <div class="chat-body" id="chatBody">
-        <!-- Chat bubbles akan muncul disini -->
-    </div>
+    <div class="chat-body" id="chatBody"></div>
     <div class="chat-footer shadow-lg">
         <input type="text" id="chatInput" placeholder="Ketik pesan diskusi..." onkeypress="if(event.keyCode===13) sendChatMessage()">
         <button onclick="sendChatMessage()"><i class="fas fa-paper-plane"></i></button>
     </div>
 </div>
-<!-- ========================================== -->
 
-
-<!-- Modal Tambah SPK -->
+<!-- Modal Tambah SPK (Hanya Admin) -->
 <div class="modal fade" id="addSpkModal" tabindex="-1" aria-hidden="true">
     <div class="modal-dialog modal-dialog-centered"><div class="modal-content border-0 shadow-lg" style="border-radius: 15px;">
         <div class="modal-header bg-primary text-white" style="border-radius: 15px 15px 0 0;">
@@ -303,7 +267,7 @@
     </div></div>
 </div>
 
-<!-- Modal Update Tracking -->
+<!-- Modal Update Tracking (Hanya Admin) -->
 <div class="modal fade" id="updateModal" tabindex="-1" aria-hidden="true">
     <div class="modal-dialog modal-dialog-centered"><div class="modal-content border-0 shadow-lg" style="border-radius: 15px;">
         <div class="modal-header bg-warning" style="border-radius: 15px 15px 0 0;">
@@ -364,7 +328,7 @@
     </div>
 </div>
 
-<!-- Modal History, Archive & Preview -->
+<!-- Modal History, Archive & Preview (Bisa diakses Semua Orang) -->
 <div class="modal fade" id="historyModal" tabindex="-1"><div class="modal-dialog modal-lg modal-dialog-centered"><div class="modal-content border-0 shadow-lg" style="border-radius: 15px;"><div class="modal-header bg-info text-white" style="border-radius: 15px 15px 0 0;"><h5 class="modal-title fw-bold"><i class="fas fa-history me-2"></i> Riwayat Perjalanan Project</h5><button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button></div><div class="modal-body p-4"><div class="p-3 bg-light rounded mb-3"><h5 class="fw-bold text-primary mb-1" id="historyProjectName"></h5><span class="badge bg-secondary" id="historySpkNo"></span></div><div class="table-responsive"><table class="table table-borderless align-middle"><thead class="table-light rounded"><tr><th>Bulan Laporan</th><th>Tanggal Upload</th><th>Status & Tahapan</th><th>Progress Pengerjaan</th></tr></thead><tbody id="historyTableBody"></tbody></table></div></div></div></div></div>
 <div class="modal fade" id="archiveModal" tabindex="-1"><div class="modal-dialog modal-lg modal-dialog-centered"><div class="modal-content border-0 shadow-lg" style="border-radius: 15px;"><div class="modal-header bg-secondary text-white" style="border-radius: 15px 15px 0 0;"><h5 class="modal-title fw-bold"><i class="fas fa-folder-open me-2"></i> Brankas Arsip File</h5><button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button></div><div class="modal-body p-4"><div class="p-3 bg-light rounded mb-3"><h5 class="fw-bold text-dark mb-0" id="archiveProjectName"></h5></div><div class="table-responsive"><table class="table table-hover align-middle"><thead class="table-light"><tr><th>Jenis File</th><th>Nama Berkas</th><th class="text-center">Aksi Dokumen</th></tr></thead><tbody id="archiveTableBody"></tbody></table></div></div></div></div></div>
 <div class="modal fade" id="previewModal" tabindex="-1"><div class="modal-dialog modal-xl modal-dialog-centered"><div class="modal-content border-0 shadow-lg" style="border-radius: 15px;"><div class="modal-header bg-dark text-white" style="border-radius: 15px 15px 0 0;"><h5 class="modal-title fw-bold" id="previewModalTitle"></h5><button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button></div><div class="modal-body text-center p-4"><div class="preview-container mb-4 shadow-sm" id="previewContainer"><img id="previewImg" src="" style="display:none;"><iframe id="previewPdf" src="" style="display:none;"></iframe><div id="previewFallback" style="display:none;" class="text-muted"><i class="fas fa-file-word fa-4x mb-3 text-secondary"></i><br>Browser tidak mendukung pratinjau dokumen ini.<br>Silakan unduh untuk membaca isinya.</div></div><a id="downloadBtn" href="#" download="" class="btn btn-success fw-bold px-4 rounded-pill shadow-sm"><i class="fas fa-download me-2"></i> Unduh File Asli</a></div></div></div></div>
@@ -375,27 +339,7 @@
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
 
 <script>
-    // --- AUTENTIKASI PASSWORD MASUK APLIKASI ---
-    function checkAppLogin() {
-        const inputPass = document.getElementById('appPasswordInput').value;
-        if (inputPass === "tauhid2026") {
-            document.getElementById('loginOverlay').style.display = 'none';
-            sessionStorage.setItem('isAppUnlocked', 'true');
-            loadData();
-        } else {
-            alert("Password Akses Salah!");
-            document.getElementById('appPasswordInput').value = '';
-        }
-    }
-
-    window.addEventListener('DOMContentLoaded', () => {
-        if (sessionStorage.getItem('isAppUnlocked') === 'true') {
-            document.getElementById('loginOverlay').style.display = 'none';
-            loadData();
-        }
-    });
-
-    // --- AUTENTIKASI ADMIN ---
+    // --- AUTENTIKASI ADMIN & VIEWER CONTROLS ---
     let isAdmin = sessionStorage.getItem('isAdminUser') === 'true';
     let warningShown = { Tasikmalaya: false, Makassar: false, Bandung: false };
 
@@ -422,19 +366,22 @@
         const loginBtn = document.getElementById('loginBtn');
         const modeStatus = document.getElementById('modeStatus');
         const btnAddSpk = document.getElementById('btnAddSpk');
+        const editLabel = document.getElementById('editLabel');
 
         if (isAdmin) {
             loginBtn.classList.replace('btn-light', 'btn-danger');
             loginBtn.innerHTML = '<i class="fas fa-sign-out-alt text-white me-1"></i> <span class="text-white">Logout Admin</span>';
-            modeStatus.innerHTML = "ADMIN (Bisa Edit/Hapus)";
+            modeStatus.innerHTML = "ADMIN (Bisa Mengedit & Menghapus Data)";
             modeStatus.className = "badge bg-success ms-1";
             btnAddSpk.style.display = "inline-block";
+            editLabel.style.display = "inline-block";
         } else {
             loginBtn.classList.replace('btn-danger', 'btn-light');
             loginBtn.innerHTML = '<i class="fas fa-user-shield text-primary me-1"></i> <span class="text-primary">Login Admin</span>';
-            modeStatus.innerHTML = "VIEWER (Hanya Lihat)";
+            modeStatus.innerHTML = "VIEWER (Hanya Lihat Dokumen & Riwayat)";
             modeStatus.className = "badge bg-danger ms-1";
             btnAddSpk.style.display = "none";
+            editLabel.style.display = "none";
         }
         
         renderTable(document.getElementById('searchInput').value.toLowerCase());
@@ -445,15 +392,11 @@
     let spkData = [];
     let chatMessages = []; 
 
-    // --- FUNGSI GANTI CABANG DARI TOMBOL MENU ---
     function switchLocation(location) {
         currentLocation = location;
-        
-        // Ubah Judul
         document.getElementById('mainTitle').innerHTML = `<i class="fas fa-clipboard-list text-primary me-2"></i> Kontrol SPK - ${location}`;
         document.getElementById('addSpkTitle').innerHTML = `<i class="fas fa-plus-circle me-2"></i> Tambah SPK Baru - ${location}`;
         document.getElementById('chatBranchName').innerText = location;
-        
         loadData();
     }
 
@@ -470,17 +413,12 @@
                 await localforage.setItem('spkData_Makassar', JSON.parse(localMakassar));
                 localStorage.removeItem('spkData_Makassar');
             }
-        } catch (e) {
-            console.error("Migrasi lokal gagal:", e);
-        }
+        } catch (e) { console.error("Migrasi lokal gagal:", e); }
     }
 
     // --- AMBIL DATA DARI MEMORI PERANGKAT ---
     async function loadData() {
-        if (sessionStorage.getItem('isAppUnlocked') !== 'true') return;
-
         await migrateOldData();
-
         localforage.getItem(`spkData_${currentLocation}`).then(function(value) {
             spkData = value || [];
             spkData.sort((a, b) => a.spkNo.localeCompare(b.spkNo, undefined, { numeric: true, sensitivity: 'base' }));
@@ -496,11 +434,9 @@
         });
     }
 
-    // --- SIMPAN DATA KE MEMORI PERANGKAT ---
     function saveData() { 
         spkData.sort((a, b) => a.spkNo.localeCompare(b.spkNo, undefined, { numeric: true, sensitivity: 'base' }));
         localforage.setItem(`spkData_${currentLocation}`, spkData).catch(function(err) {
-            console.error(err);
             alert("Penyimpanan perangkat penuh!");
         });
     }
@@ -522,24 +458,18 @@
     }
 
     function saveChatData() {
-        localforage.setItem(`chatData_${currentLocation}`, chatMessages).catch(function(err) {
-            console.error(err);
-        });
+        localforage.setItem(`chatData_${currentLocation}`, chatMessages).catch(function(err) { console.error(err); });
     }
 
     function renderChatMessages() {
         const body = document.getElementById('chatBody');
         body.innerHTML = '';
-        
         if (chatMessages.length === 0) {
             body.innerHTML = `<div class="text-center mt-3"><span class="badge bg-light text-muted">Belum ada obrolan di cabang ini</span></div>`;
             return;
         }
-
         chatMessages.forEach(msg => {
-            const isMe = (isAdmin && msg.sender === 'Admin') || (!isAdmin && msg.sender === 'Viewer');
             const bubbleClass = msg.sender === 'Admin' ? 'msg-admin' : 'msg-viewer';
-            
             body.innerHTML += `
                 <div class="msg-bubble ${bubbleClass}">
                     <div class="msg-sender">${msg.sender}</div>
@@ -555,25 +485,22 @@
         const input = document.getElementById('chatInput');
         const text = input.value.trim();
         if (!text) return;
-        
         const now = new Date();
         const timeStr = now.getHours().toString().padStart(2, '0') + ':' + now.getMinutes().toString().padStart(2, '0');
-        
         chatMessages.push({
             sender: isAdmin ? 'Admin' : 'Viewer',
             text: text,
             time: timeStr,
             timestamp: now.getTime()
         });
-        
         saveChatData();
         renderChatMessages();
         input.value = '';
     }
-    // ----------------------------------------
 
+    // PENCEGAHAN EDIT OLEH VIEWER PADA NOMOR SPK
     function updateSpkNo(index, newSpkValue) {
-        if (!isAdmin) return; 
+        if (!isAdmin) return; // Menghentikan viewer merubah data
         const cleanValue = newSpkValue.trim();
         if (cleanValue === "") {
             alert("Nomor SPK tidak boleh kosong!");
@@ -588,7 +515,6 @@
     }
 
     function getBase64(file) { return new Promise((resolve, reject) => { const reader = new FileReader(); reader.readAsDataURL(file); reader.onload = () => resolve({ name: file.name, type: file.type, data: reader.result }); reader.onerror = error => reject(error); }); }
-    
     function validateFile(file) { if (file && file.size > 5242880) { alert(`File "${file.name}" terlalu besar! Maksimal 5 MB.`); return false; } return true; }
 
     document.getElementById('searchInput').addEventListener('input', function(e) { renderTable(e.target.value.toLowerCase()); });
@@ -598,9 +524,7 @@
         const progressInput = document.getElementById('updateProgress');
         const statusInput = document.getElementById('updateStatus');
         
-        let progress = 0;
-        let autoStatus = "On Progress";
-
+        let progress = 0; let autoStatus = "On Progress";
         switch(tahap) {
             case "Belum Mulai": progress = 0; autoStatus = "Belum Mulai"; break;
             case "1. Penerbitan Invoice": progress = 10; break;
@@ -612,9 +536,7 @@
             case "7. Proses Finisihing/packing": progress = 95; break;
             case "8. Siap Diterima Klien": progress = 100; autoStatus = "Selesai"; break;
         }
-
-        progressInput.value = progress;
-        statusInput.value = autoStatus;
+        progressInput.value = progress; statusInput.value = autoStatus;
     }
 
     function openArchiveModal(index) {
@@ -645,9 +567,7 @@
     function checkUnupdatedAlarms() {
         const warningList = document.getElementById('unupdatedList');
         warningList.innerHTML = '';
-        let hasUnupdated = false;
-        let needsSave = false;
-        const now = Date.now();
+        let hasUnupdated = false; let needsSave = false; const now = Date.now();
 
         spkData.forEach(spk => {
             if (spk.status !== 'Selesai') {
@@ -656,20 +576,17 @@
                     spk.lastUpdateTimestamp = isNaN(stDate) ? now : stDate;
                     needsSave = true;
                 }
-
                 const hoursPassed = (now - spk.lastUpdateTimestamp) / (1000 * 60 * 60);
-                
                 if (hoursPassed >= 24) {
                     hasUnupdated = true;
-                    let days = Math.floor(hoursPassed / 24);
-                    let hours = Math.floor(hoursPassed % 24);
+                    let days = Math.floor(hoursPassed / 24); let hours = Math.floor(hoursPassed % 24);
                     let timeText = days > 0 ? `${days} hari ${hours} jam` : `${hours} jam`;
                     
                     warningList.innerHTML += `
                         <li class="list-group-item list-group-item-danger d-flex justify-content-between align-items-center border-0 mb-2 rounded shadow-sm">
                             <div>
                                 <span class="fw-bold fs-5 text-dark">${spk.spkNo}</span> - <span class="text-dark">${spk.projectName}</span>
-                                <br><small class="text-danger fw-bold"><i class="far fa-clock me-1"></i> Terbengkalai selama: ${timeText} lalu</small>
+                                <br><small class="text-danger fw-bold"><i class="far fa-clock me-1"></i> Terbengkalai: ${timeText} lalu</small>
                             </div>
                             <span class="badge bg-danger rounded-circle p-2 fs-6 shadow-sm"><i class="fas fa-exclamation"></i></span>
                         </li>`;
@@ -678,7 +595,6 @@
         });
 
         if (needsSave) saveData();
-
         if (hasUnupdated && !warningShown[currentLocation]) {
             const warningModal = new bootstrap.Modal(document.getElementById('unupdatedWarningModal'));
             warningModal.show();
@@ -693,8 +609,8 @@
             if (spk.status === 'Selesai') return; 
             const tgt = new Date(spk.endDate); tgt.setHours(0, 0, 0, 0);
             const diffDays = Math.ceil((tgt - today) / (1000 * 60 * 60 * 24));
-            if (diffDays <= 4 && diffDays >= 0) toast.innerHTML += `<div class="toast align-items-center text-bg-warning border-0 show mb-3 shadow-lg" style="border-radius:15px;"><div class="d-flex"><div class="toast-body fs-6"><strong><i class="fas fa-bell blink-warning text-danger fs-5"></i> PERINGATAN DEADLINE!</strong><br>Project <b class="text-dark">${spk.projectName}</b> tersisa <b class="text-danger">${diffDays} Hari</b> lagi!</div><button type="button" class="btn-close me-3 m-auto" data-bs-dismiss="toast"></button></div></div>`;
-            else if (diffDays < 0) toast.innerHTML += `<div class="toast align-items-center text-bg-danger border-0 show mb-3 shadow-lg text-white" style="border-radius:15px;"><div class="d-flex"><div class="toast-body fs-6"><strong><i class="fas fa-exclamation-triangle fs-5"></i> PROJECT TERLAMBAT!</strong><br>Project <b>${spk.projectName}</b> sudah lewat deadline <b>${Math.abs(diffDays)} Hari</b>!</div><button type="button" class="btn-close btn-close-white me-3 m-auto" data-bs-dismiss="toast"></button></div></div>`;
+            if (diffDays <= 4 && diffDays >= 0) toast.innerHTML += `<div class="toast align-items-center text-bg-warning border-0 show mb-3 shadow-lg" style="border-radius:15px;"><div class="d-flex"><div class="toast-body fs-6"><strong><i class="fas fa-bell blink-warning text-danger fs-5"></i> DEADLINE DEKAT!</strong><br>Project <b class="text-dark">${spk.projectName}</b> sisa <b class="text-danger">${diffDays} Hari</b>!</div><button type="button" class="btn-close me-3 m-auto" data-bs-dismiss="toast"></button></div></div>`;
+            else if (diffDays < 0) toast.innerHTML += `<div class="toast align-items-center text-bg-danger border-0 show mb-3 shadow-lg text-white" style="border-radius:15px;"><div class="d-flex"><div class="toast-body fs-6"><strong><i class="fas fa-exclamation-triangle fs-5"></i> PROJECT TELAT!</strong><br>Project <b>${spk.projectName}</b> sudah telat <b>${Math.abs(diffDays)} Hari</b>!</div><button type="button" class="btn-close btn-close-white me-3 m-auto" data-bs-dismiss="toast"></button></div></div>`;
         });
     }
 
@@ -710,24 +626,14 @@
             let statusClass = 'bg-danger';           
             let columnBgClass = 'bg-solid-merah';          
             
-            if(spk.status === 'On Progress') { 
-                statusClass = 'bg-warning text-dark'; 
-                columnBgClass = 'bg-solid-kuning'; 
-            } 
-            else if(spk.status === 'Tertunda') { 
-                statusClass = 'bg-primary'; 
-                columnBgClass = 'bg-solid-biru'; 
-            } 
-            else if(spk.status === 'Selesai') { 
-                statusClass = 'bg-success'; 
-                columnBgClass = 'bg-solid-hijau'; 
-            }
+            if(spk.status === 'On Progress') { statusClass = 'bg-warning text-dark'; columnBgClass = 'bg-solid-kuning'; } 
+            else if(spk.status === 'Tertunda') { statusClass = 'bg-primary'; columnBgClass = 'bg-solid-biru'; } 
+            else if(spk.status === 'Selesai') { statusClass = 'bg-success'; columnBgClass = 'bg-solid-hijau'; }
 
             let tahapSaatIni = spk.tahap || 'Belum Mulai';
 
             let totalFiles = (spk.spkFile ? 1 : 0);
             if (spk.history) spk.history.forEach(h => { if(h.updateFile) totalFiles++; });
-            
             let fileHtml = totalFiles > 0 ? `<br><button class="btn btn-sm btn-light mt-2 shadow-sm fw-bold px-3 py-1" onclick="openArchiveModal(${index})" title="Lihat arsip file"><i class="fas fa-folder-open text-primary me-1"></i> Buka Arsip File (${totalFiles})</button>` : '';
 
             let deadlineBadge = '';
@@ -738,10 +644,14 @@
                 else if (diffDays < 0) deadlineBadge = `<br><span class="badge bg-danger mt-2 px-2 py-1 border border-danger shadow-sm"><i class="fas fa-exclamation-circle"></i> Telat ${Math.abs(diffDays)} Hari</span>`;
             }
 
-            let editableAttr = isAdmin ? `contenteditable="true" title="Klik untuk mengubah Nomor SPK" onblur="updateSpkNo(${index}, this.innerText)" onkeypress="if(event.keyCode===13) { event.preventDefault(); this.blur(); }"` : '';
+            // MENGHILANGKAN FITUR EDIT BAGI VIEWER
+            let editableAttr = isAdmin ? `contenteditable="true" title="Klik untuk merubah Nomor SPK" onblur="updateSpkNo(${index}, this.innerText)" onkeypress="if(event.keyCode===13) { event.preventDefault(); this.blur(); }"` : '';
             let editIcon = isAdmin ? `<i class="fas fa-pencil-alt editable-icon"></i>` : '';
             
+            // TOMBOL AKSI DISESUAIKAN ROLE (Semua bisa lihat Riwayat)
             let actionButtons = `<button class="btn btn-sm btn-info text-white mb-2 shadow-sm rounded-pill" onclick="openHistoryModal(${index})"><i class="fas fa-history me-1"></i> Riwayat</button>`;
+            
+            // Hanya ADMIN yang melihat tombol Edit/Update dan Hapus
             if (isAdmin) {
                 actionButtons += `
                     <button class="btn btn-sm btn-warning mb-2 shadow-sm rounded-pill text-dark fw-bold" onclick="openUpdateModal(${index})"><i class="fas fa-edit me-1"></i> Update</button>
@@ -781,36 +691,25 @@
         if(visibleCount === 0) tbody.innerHTML = `<tr><td colspan="8" class="text-center text-muted py-5"><i class="fas fa-search fa-3x mb-3 opacity-25"></i><br>Tidak ada data SPK yang ditemukan.</td></tr>`;
     }
 
+    // PENCEGAHAN EDIT OLEH VIEWER PADA SAAT SUBMIT
     document.getElementById('addSpkForm').addEventListener('submit', async function(e) {
-        e.preventDefault(); if(!isAdmin) return;
+        e.preventDefault(); 
+        if(!isAdmin) return; // Menghentikan jika bukan Admin
         const fileInput = document.getElementById('spkFile'); let fileData = null;
         if (fileInput.files.length > 0) { if (!validateFile(fileInput.files[0])) return; fileData = await getBase64(fileInput.files[0]); }
         
         spkData.push({ 
-            spkNo: document.getElementById('spkNo').value, 
-            projectName: document.getElementById('projectName').value, 
-            vendor: document.getElementById('vendorName').value, 
-            startDate: document.getElementById('startDate').value, 
-            endDate: document.getElementById('endDate').value, 
-            status: 'Belum Mulai', 
-            tahap: 'Belum Mulai', 
-            progress: 0, 
-            lastMonthUpdate: 'Belum ada', 
-            lastUpdateTimestamp: Date.now(),
-            spkFile: fileData, 
-            history: [] 
+            spkNo: document.getElementById('spkNo').value, projectName: document.getElementById('projectName').value, 
+            vendor: document.getElementById('vendorName').value, startDate: document.getElementById('startDate').value, 
+            endDate: document.getElementById('endDate').value, status: 'Belum Mulai', tahap: 'Belum Mulai', 
+            progress: 0, lastMonthUpdate: 'Belum ada', lastUpdateTimestamp: Date.now(), spkFile: fileData, history: [] 
         });
-        
-        saveData(); 
-        this.reset(); 
-        bootstrap.Modal.getInstance(document.getElementById('addSpkModal')).hide(); 
-        document.getElementById('searchInput').value = ''; 
-        renderTable(); 
-        checkDeadlineAlarms(); 
+        saveData(); this.reset(); bootstrap.Modal.getInstance(document.getElementById('addSpkModal')).hide(); 
+        document.getElementById('searchInput').value = ''; renderTable(); checkDeadlineAlarms(); 
     });
 
     function openUpdateModal(index) {
-        if(!isAdmin) return;
+        if(!isAdmin) return; // Menghentikan viewer membuka modal edit
         const spk = spkData[index]; document.getElementById('updateId').value = index; document.getElementById('updateStatus').value = spk.status;
         document.getElementById('updateTahap').value = spk.tahap || 'Belum Mulai'; document.getElementById('updateProgress').value = spk.progress;
         document.getElementById('updateNote').value = ''; document.getElementById('updateFile').value = ''; 
@@ -819,27 +718,23 @@
     }
 
     document.getElementById('updateSpkForm').addEventListener('submit', async function(e) {
-        e.preventDefault(); if(!isAdmin) return;
+        e.preventDefault(); 
+        if(!isAdmin) return; // Menghentikan jika bukan Admin
         const index = document.getElementById('updateId').value, inStatus = document.getElementById('updateStatus').value, inTahap = document.getElementById('updateTahap').value, inProg = document.getElementById('updateProgress').value;
         let finStatus = (inProg == 100 || inTahap === '8. Siap Diterima Klien') ? 'Selesai' : inStatus; let finProg = inTahap === '8. Siap Diterima Klien' ? 100 : inProg; 
         const fileInput = document.getElementById('updateFile'); let fileData = null;
         if (fileInput.files.length > 0) { if (!validateFile(fileInput.files[0])) return; fileData = await getBase64(fileInput.files[0]); }
 
-        spkData[index].status = finStatus; 
-        spkData[index].tahap = inTahap; 
-        spkData[index].progress = finProg; 
-        spkData[index].lastMonthUpdate = document.getElementById('updateMonth').value;
-        spkData[index].lastUpdateTimestamp = Date.now();
-
+        spkData[index].status = finStatus; spkData[index].tahap = inTahap; spkData[index].progress = finProg; 
+        spkData[index].lastMonthUpdate = document.getElementById('updateMonth').value; spkData[index].lastUpdateTimestamp = Date.now();
         spkData[index].history.push({ month: document.getElementById('updateMonth').value, date: new Date().toLocaleDateString('id-ID'), status: finStatus, tahap: inTahap, progress: finProg, note: document.getElementById('updateNote').value, updateFile: fileData });
         
-        saveData(); 
-        bootstrap.Modal.getInstance(document.getElementById('updateModal')).hide(); 
-        renderTable(document.getElementById('searchInput').value.toLowerCase()); 
-        checkDeadlineAlarms(); 
+        saveData(); bootstrap.Modal.getInstance(document.getElementById('updateModal')).hide(); 
+        renderTable(document.getElementById('searchInput').value.toLowerCase()); checkDeadlineAlarms(); 
     });
 
     function openHistoryModal(index) {
+        // Bebas diakses semua orang
         const spk = spkData[index]; document.getElementById('historyProjectName').innerText = spk.projectName; document.getElementById('historySpkNo').innerText = 'No SPK: ' + spk.spkNo;
         const tbody = document.getElementById('historyTableBody'); tbody.innerHTML = '';
         if(!spk.history || spk.history.length === 0) tbody.innerHTML = `<tr><td colspan="4" class="text-center text-muted py-4"><i class="fas fa-history fa-2x opacity-25 mb-2"></i><br>Belum ada riwayat tercatat.</td></tr>`;
@@ -857,18 +752,15 @@
     }
 
     function deleteSpk(index) {
-        if(!isAdmin) return;
+        if(!isAdmin) return; // Menghentikan jika bukan Admin
         if(confirm(`TINDAKAN PERMANEN!\nYakin ingin menghapus SPK ini beserta seluruh file lampiran dan riwayatnya?`)) { 
-            spkData.splice(index, 1); 
-            saveData(); 
-            renderTable(document.getElementById('searchInput').value.toLowerCase()); 
-            checkDeadlineAlarms(); 
+            spkData.splice(index, 1); saveData(); renderTable(document.getElementById('searchInput').value.toLowerCase()); checkDeadlineAlarms(); 
         }
     }
 
     // Inisialisasi awal
     window.onload = () => {
-        switchLocation('Tasikmalaya');
+        loadData();
     };
 </script>
 </body>
