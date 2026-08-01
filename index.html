@@ -58,15 +58,15 @@
             animation: fadeUp 0.6s ease-out forwards;
         }
 
-        .nav-tabs { border: none; gap: 15px; margin-bottom: 25px !important; }
-        .nav-tabs .nav-link { 
-            font-weight: 700; color: #6c757d; background-color: #f1f3f5;
-            border: none; border-radius: 50px; padding: 10px 25px; transition: all 0.3s ease;
+        /* Animasi Tombol Menu Merah */
+        @keyframes pulse-red {
+            0% { box-shadow: 0 0 0 0 rgba(220, 53, 69, 0.7); }
+            70% { box-shadow: 0 0 0 20px rgba(220, 53, 69, 0); }
+            100% { box-shadow: 0 0 0 0 rgba(220, 53, 69, 0); }
         }
-        .nav-tabs .nav-link:hover { background-color: #e2e6ea; transform: translateY(-2px); }
-        .nav-tabs .nav-link.active { 
-            color: #fff; background: linear-gradient(135deg, #0d6efd 0%, #0a58ca 100%); 
-            box-shadow: 0 6px 15px rgba(13, 110, 253, 0.3); transform: translateY(-3px);
+        .pulse-menu-btn {
+            animation: pulse-red 2.5s infinite;
+            border: 4px solid #fff !important;
         }
 
         .table-custom-wrapper {
@@ -136,7 +136,6 @@
         }
         .chat-body {
             flex: 1; padding: 15px; overflow-y: auto; display: flex; flex-direction: column; gap: 10px;
-            /* Background pattern ala WA */
             background-image: url('https://user-images.githubusercontent.com/15075759/28719144-86dc0f70-73b1-11e7-911d-60d70fcded21.png');
             background-size: cover;
         }
@@ -151,7 +150,6 @@
         .msg-admin .msg-sender { color: #075e54; }
         .msg-viewer .msg-sender { color: #34b7f1; }
         .msg-time { font-size: 10px; color: #999; text-align: right; margin-top: 5px; }
-
     </style>
 </head>
 <body>
@@ -169,7 +167,7 @@
     </div>
 </div>
 
-<!-- Menu Navigasi -->
+<!-- Menu Navigasi Header -->
 <nav class="navbar navbar-expand-lg navbar-dark navbar-custom">
     <div class="container-fluid px-4">
         <a class="navbar-brand fw-bold fs-4" href="#">
@@ -186,19 +184,25 @@
 <div class="container-fluid px-4 py-2">
     <div class="main-wrapper">
         
-        <!-- Tab Menu Cabang -->
-        <ul class="nav nav-tabs" id="locationTabs">
-            <li class="nav-item">
-                <a class="nav-link active" id="tab-tasikmalaya" href="#" onclick="switchLocation('Tasikmalaya')">
-                    <i class="fas fa-map-marker-alt me-1"></i> Cabang Tasikmalaya
-                </a>
-            </li>
-            <li class="nav-item">
-                <a class="nav-link" id="tab-makassar" href="#" onclick="switchLocation('Makassar')">
-                    <i class="fas fa-map-marker-alt me-1"></i> Cabang Makassar
-                </a>
-            </li>
-        </ul>
+        <!-- ==========================================
+             TOMBOL MENU UTAMA (CABANG) DI TENGAH 
+             ========================================== -->
+        <div class="text-center mb-5 mt-2">
+            <div class="dropdown d-inline-block">
+                <button class="btn btn-danger btn-lg dropdown-toggle shadow-lg pulse-menu-btn" type="button" data-bs-toggle="dropdown" aria-expanded="false" style="font-size: 1.8rem; font-weight: 900; padding: 15px 80px; border-radius: 50px; letter-spacing: 2px;">
+                    <i class="fas fa-bars me-2"></i> MENU
+                </button>
+                <!-- Daftar Dropdown Cabang -->
+                <ul class="dropdown-menu shadow-lg border-0" style="border-radius: 20px; min-width: 250px; font-size: 1.2rem; padding: 10px; margin-top: 10px;">
+                    <li><h6 class="dropdown-header text-center fw-bold fs-6 text-muted">PILIH CABANG</h6></li>
+                    <li><hr class="dropdown-divider"></li>
+                    <li><a class="dropdown-item py-3 fw-bold text-center rounded mb-1 dropdown-hover" href="#" onclick="switchLocation('Tasikmalaya')"><i class="fas fa-building text-danger me-2"></i> Tasikmalaya</a></li>
+                    <li><a class="dropdown-item py-3 fw-bold text-center rounded mb-1 dropdown-hover" href="#" onclick="switchLocation('Makassar')"><i class="fas fa-building text-danger me-2"></i> Makassar</a></li>
+                    <li><a class="dropdown-item py-3 fw-bold text-center rounded dropdown-hover" href="#" onclick="switchLocation('Bandung')"><i class="fas fa-building text-danger me-2"></i> Bandung</a></li>
+                </ul>
+            </div>
+        </div>
+        <!-- ========================================== -->
 
         <div class="status-chip mb-4">
             <div class="fs-3 text-info"><i class="fas fa-info-circle"></i></div>
@@ -374,7 +378,6 @@
     // --- AUTENTIKASI PASSWORD MASUK APLIKASI ---
     function checkAppLogin() {
         const inputPass = document.getElementById('appPasswordInput').value;
-        // Password akses masuk web
         if (inputPass === "tauhid2026") {
             document.getElementById('loginOverlay').style.display = 'none';
             sessionStorage.setItem('isAppUnlocked', 'true');
@@ -394,7 +397,7 @@
 
     // --- AUTENTIKASI ADMIN ---
     let isAdmin = sessionStorage.getItem('isAdminUser') === 'true';
-    let warningShown = { Tasikmalaya: false, Makassar: false };
+    let warningShown = { Tasikmalaya: false, Makassar: false, Bandung: false };
 
     function toggleLogin() {
         if (isAdmin) {
@@ -435,19 +438,18 @@
         }
         
         renderTable(document.getElementById('searchInput').value.toLowerCase());
-        renderChatMessages(); // Render chat sesuai status admin
+        renderChatMessages(); 
     }
 
     let currentLocation = 'Tasikmalaya';
     let spkData = [];
-    let chatMessages = []; // Variabel untuk menyimpan data chat
+    let chatMessages = []; 
 
+    // --- FUNGSI GANTI CABANG DARI TOMBOL MENU ---
     function switchLocation(location) {
         currentLocation = location;
-        document.getElementById('tab-tasikmalaya').classList.remove('active');
-        document.getElementById('tab-makassar').classList.remove('active');
-        document.getElementById(`tab-${location.toLowerCase()}`).classList.add('active');
         
+        // Ubah Judul
         document.getElementById('mainTitle').innerHTML = `<i class="fas fa-clipboard-list text-primary me-2"></i> Kontrol SPK - ${location}`;
         document.getElementById('addSpkTitle').innerHTML = `<i class="fas fa-plus-circle me-2"></i> Tambah SPK Baru - ${location}`;
         document.getElementById('chatBranchName').innerText = location;
@@ -479,7 +481,6 @@
 
         await migrateOldData();
 
-        // Load SPK Data
         localforage.getItem(`spkData_${currentLocation}`).then(function(value) {
             spkData = value || [];
             spkData.sort((a, b) => a.spkNo.localeCompare(b.spkNo, undefined, { numeric: true, sensitivity: 'base' }));
@@ -489,7 +490,6 @@
             checkUnupdatedAlarms();
         });
 
-        // Load Chat Data
         localforage.getItem(`chatData_${currentLocation}`).then(function(val) {
             chatMessages = val || [];
             renderChatMessages();
@@ -537,7 +537,6 @@
         }
 
         chatMessages.forEach(msg => {
-            // Cek apakah pesan dikirim oleh role yang sedang aktif saat ini
             const isMe = (isAdmin && msg.sender === 'Admin') || (!isAdmin && msg.sender === 'Viewer');
             const bubbleClass = msg.sender === 'Admin' ? 'msg-admin' : 'msg-viewer';
             
