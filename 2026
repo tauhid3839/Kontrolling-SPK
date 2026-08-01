@@ -1,0 +1,831 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Sistem Kontrol SPK Project Tauhid Konfeksi Sablon</title>
+    <!-- Font Google Modern -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;600;700;800&display=swap" rel="stylesheet">
+    <!-- Bootstrap 5 CSS -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <!-- FontAwesome for Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    
+    <!-- SYSTEM UPGRADE: FIREBASE REALTIME DATABASE (Untuk Sinkronisasi Antar HP/Laptop) -->
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-database-compat.js"></script>
+    
+    <!-- localForage hanya dipakai sementara untuk menarik data lama ke database baru -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/localforage/1.10.0/localforage.min.js"></script>
+
+    <style>
+        /* Layar Login Utama */
+        #loginOverlay {
+            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+            background: linear-gradient(135deg, #1e3c72 0%, #2a5298 100%);
+            z-index: 9999; display: flex; justify-content: center; align-items: center;
+        }
+        .login-card {
+            background: white; padding: 40px; border-radius: 20px;
+            box-shadow: 0 15px 35px rgba(0,0,0,0.3); width: 100%; max-width: 400px; text-align: center;
+        }
+
+        /* Desain Background Dashboard */
+        body { 
+            background: linear-gradient(135deg, #e0eafc 0%, #cfdef3 100%);
+            background-attachment: fixed;
+            min-height: 100vh;
+            font-family: 'Nunito', sans-serif;
+        }
+
+        @keyframes fadeUp {
+            from { opacity: 0; transform: translateY(20px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        .navbar-custom {
+            background: linear-gradient(90deg, #1e3c72 0%, #2a5298 100%) !important;
+            padding: 15px 0;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+        }
+
+        .main-wrapper {
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(10px);
+            border-radius: 20px;
+            box-shadow: 0 15px 35px rgba(0, 0, 0, 0.1);
+            padding: 30px;
+            margin-top: 10px;
+            margin-bottom: 40px;
+            animation: fadeUp 0.6s ease-out forwards;
+        }
+
+        /* Animasi Tombol Menu Merah */
+        @keyframes pulse-red {
+            0% { box-shadow: 0 0 0 0 rgba(220, 53, 69, 0.7); }
+            70% { box-shadow: 0 0 0 20px rgba(220, 53, 69, 0); }
+            100% { box-shadow: 0 0 0 0 rgba(220, 53, 69, 0); }
+        }
+        .pulse-menu-btn {
+            animation: pulse-red 2.5s infinite;
+            border: 4px solid #fff !important;
+        }
+
+        .table-custom-wrapper {
+            border-radius: 12px; max-height: 70vh; overflow-y: auto; 
+            box-shadow: 0 5px 15px rgba(0,0,0,0.03); border: 1px solid #dee2e6;
+        }
+        
+        .table { margin-bottom: 0; width: 100%; }
+        .table thead th {
+            background-color: #212529; color: white; font-weight: 600;
+            text-transform: uppercase; font-size: 13px; letter-spacing: 0.5px; padding: 15px;
+            position: sticky; top: 0; z-index: 10;
+            box-shadow: inset 0 -2px 0 rgba(0,0,0,0.2), 0 2px 4px rgba(0,0,0,0.2);
+        }
+        .table tbody td { padding: 15px; vertical-align: middle; border-color: #dee2e6; }
+
+        .progress { height: 22px; font-size: 12px; font-weight: 800; border-radius: 50px; box-shadow: inset 0 1px 2px rgba(0,0,0,0.1); }
+        .progress-bar { line-height: 22px; }
+
+        .status-chip {
+            background: #fff; border-left: 5px solid #0dcaf0; border-radius: 10px;
+            padding: 15px 20px; box-shadow: 0 4px 10px rgba(0,0,0,0.04);
+            display: flex; align-items: center; gap: 15px;
+        }
+
+        .btn { transition: all 0.2s ease; border-radius: 8px; }
+        .btn:hover { transform: translateY(-2px); box-shadow: 0 5px 12px rgba(0,0,0,0.1); }
+        
+        .editable-cell { cursor: text; position: relative; border-radius: 6px; }
+        .editable-cell:hover { background-color: #f8f9fa; }
+        .editable-cell:focus { background-color: #fff; outline: none; box-shadow: 0 0 0 3px rgba(13, 110, 253, 0.25); }
+        .editable-icon { font-size: 0.7em; color: #adb5bd; margin-left: 5px; }
+
+        .blink-warning { animation: blinker 1.5s linear infinite; }
+        @keyframes blinker { 50% { opacity: 0.4; } }
+        
+        .preview-container { width: 100%; height: 60vh; background: #e9ecef; border-radius: 10px; display: flex; justify-content: center; align-items: center; overflow: hidden; }
+        .preview-container img { max-width: 100%; max-height: 100%; object-fit: contain; }
+        .preview-container iframe { width: 100%; height: 100%; border: none; }
+
+        /* Warna Custom Background Kolom (4 WARNA SOLID TEGAS) */
+        .bg-solid-merah { background-color: #dc3545 !important; border-left: 4px solid #a71d2a !important; }
+        .bg-solid-kuning { background-color: #ffc107 !important; border-left: 4px solid #cc9a06 !important; }
+        .bg-solid-biru { background-color: #0d6efd !important; border-left: 4px solid #084298 !important; }
+        .bg-solid-hijau { background-color: #198754 !important; border-left: 4px solid #0f5132 !important; }
+
+        /* UI CHAT BERGAYA WHATSAPP */
+        .chat-fab {
+            position: fixed; bottom: 30px; right: 30px; width: 65px; height: 65px;
+            background-color: #25d366; color: white; border-radius: 50%; display: flex;
+            align-items: center; justify-content: center; box-shadow: 0 4px 15px rgba(37, 211, 102, 0.5);
+            cursor: pointer; z-index: 1050; border: none; transition: transform 0.3s ease;
+        }
+        .chat-fab:hover { transform: scale(1.1); }
+        
+        .chat-panel {
+            position: fixed; bottom: 110px; right: 30px; width: 360px; height: 500px;
+            background: #ece5dd; border-radius: 15px; box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+            z-index: 1050; display: none; flex-direction: column; overflow: hidden;
+            animation: fadeUp 0.3s ease; border: 1px solid #ddd;
+        }
+        .chat-header {
+            background: #075e54; color: white; padding: 15px; display: flex;
+            justify-content: space-between; align-items: center; font-weight: bold;
+        }
+        .chat-body {
+            flex: 1; padding: 15px; overflow-y: auto; display: flex; flex-direction: column; gap: 10px;
+            background-image: url('https://user-images.githubusercontent.com/15075759/28719144-86dc0f70-73b1-11e7-911d-60d70fcded21.png');
+            background-size: cover;
+        }
+        .chat-footer { background: #f0f0f0; padding: 10px; display: flex; gap: 10px; align-items: center; }
+        .chat-footer input { flex: 1; border-radius: 50px; padding: 10px 20px; border: none; outline: none; }
+        .chat-footer button { background: #128c7e; color: white; border: none; width: 45px; height: 45px; border-radius: 50%; display: flex; align-items: center; justify-content: center; cursor: pointer; }
+        
+        .msg-bubble { max-width: 85%; padding: 8px 12px; border-radius: 10px; font-size: 14px; position: relative; box-shadow: 0 1px 2px rgba(0,0,0,0.1); }
+        .msg-admin { background: #dcf8c6; align-self: flex-end; border-top-right-radius: 0; }
+        .msg-viewer { background: #ffffff; align-self: flex-start; border-top-left-radius: 0; }
+        .msg-sender { font-size: 11px; font-weight: 800; margin-bottom: 2px; }
+        .msg-admin .msg-sender { color: #075e54; }
+        .msg-viewer .msg-sender { color: #34b7f1; }
+        .msg-time { font-size: 10px; color: #999; text-align: right; margin-top: 5px; }
+    </style>
+</head>
+<body>
+
+<!-- OVERLAY LOGIN MASUK WEBSITE -->
+<div id="loginOverlay">
+    <div class="login-card">
+        <div class="mb-3 text-primary"><i class="fas fa-shield-alt fa-3x"></i></div>
+        <h4 class="fw-bold text-dark mb-3">Autentikasi Sistem SPK</h4>
+        <p class="text-muted small mb-4">Masukkan password akses untuk membuka aplikasi kontrol project.</p>
+        <div class="mb-3">
+            <input type="password" id="appPasswordInput" class="form-control text-center py-2" placeholder="Password Akses..." onkeypress="if(event.keyCode===13) checkAppLogin()">
+        </div>
+        <button class="btn btn-primary w-100 fw-bold py-2 rounded-pill shadow-sm" onclick="checkAppLogin()">Masuk Aplikasi</button>
+    </div>
+</div>
+
+<!-- Menu Navigasi Header -->
+<nav class="navbar navbar-expand-lg navbar-dark navbar-custom">
+    <div class="container-fluid px-4">
+        <a class="navbar-brand fw-bold fs-4" href="#">
+            <i class="fas fa-tshirt text-warning me-2"></i> Tauhid Konfeksi Sablon (Cloud)
+        </a>
+        <div class="d-flex">
+            <!-- Tombol Login Khusus Admin -->
+            <button id="loginBtn" class="btn btn-light btn-sm fw-bold px-4 rounded-pill shadow-sm" onclick="toggleLogin()">
+                <i class="fas fa-user-shield text-primary"></i> <span id="loginText" class="text-primary">Login Admin</span>
+            </button>
+        </div>
+    </div>
+</nav>
+
+<div class="container-fluid px-4 py-2">
+    <div class="main-wrapper">
+        
+        <!-- TOMBOL MENU UTAMA (CABANG) DI TENGAH -->
+        <div class="text-center mb-5 mt-2">
+            <div class="dropdown d-inline-block">
+                <button class="btn btn-danger btn-lg dropdown-toggle shadow-lg pulse-menu-btn" type="button" data-bs-toggle="dropdown" aria-expanded="false" style="font-size: 1.8rem; font-weight: 900; padding: 15px 80px; border-radius: 50px; letter-spacing: 2px;">
+                    <i class="fas fa-bars me-2"></i> MENU
+                </button>
+                <!-- Daftar Dropdown Cabang -->
+                <ul class="dropdown-menu shadow-lg border-0" style="border-radius: 20px; min-width: 250px; font-size: 1.2rem; padding: 10px; margin-top: 10px;">
+                    <li><h6 class="dropdown-header text-center fw-bold fs-6 text-muted">PILIH CABANG</h6></li>
+                    <li><hr class="dropdown-divider"></li>
+                    <li><a class="dropdown-item py-3 fw-bold text-center rounded mb-1 dropdown-hover" href="#" onclick="switchLocation('Tasikmalaya')"><i class="fas fa-building text-danger me-2"></i> Tasikmalaya</a></li>
+                    <li><a class="dropdown-item py-3 fw-bold text-center rounded dropdown-hover" href="#" onclick="switchLocation('Makassar')"><i class="fas fa-building text-danger me-2"></i> Makassar</a></li>
+                </ul>
+            </div>
+        </div>
+
+        <div class="status-chip mb-4">
+            <div class="fs-3 text-info"><i class="fas fa-info-circle"></i></div>
+            <div>
+                <h6 class="mb-1 fw-bold text-dark">Informasi Sistem Live Cloud</h6>
+                <p class="mb-0 text-muted" style="font-size: 14px;">
+                    Akses Anda: <span id="modeStatus" class="badge bg-danger ms-1">Viewer (Hanya Lihat)</span><br>
+                    Data terhubung ke internet secara Real-Time. Karyawan dapat mengecek SPK di perangkat manapun.
+                </p>
+            </div>
+        </div>
+
+        <div class="d-flex justify-content-between align-items-center mb-4">
+            <h3 class="fw-extrabold text-dark mb-0" id="mainTitle">
+                <i class="fas fa-clipboard-list text-primary me-2"></i> Kontrol SPK - Tasikmalaya
+            </h3>
+            <!-- Tombol Tambah SPK (Otomatis Disembunyikan Jika Bukan Admin) -->
+            <button id="btnAddSpk" class="btn btn-primary fw-bold px-4 py-2" data-bs-toggle="modal" data-bs-target="#addSpkModal" style="display: none;">
+                <i class="fas fa-plus me-1"></i> Buat SPK Baru
+            </button>
+        </div>
+
+        <!-- Kolom Pencarian -->
+        <div class="row mb-4">
+            <div class="col-md-4 ms-auto">
+                <div class="input-group shadow-sm" style="border-radius: 50px; overflow: hidden;">
+                    <span class="input-group-text bg-white border-0 text-primary ps-4"><i class="fas fa-search"></i></span>
+                    <input type="text" id="searchInput" class="form-control border-0 py-2 shadow-none" placeholder="Cari Nama Project atau No. SPK...">
+                </div>
+            </div>
+        </div>
+
+        <!-- Tabel Data SPK -->
+        <div class="table-custom-wrapper bg-white">
+            <table class="table table-bordered table-hover align-middle w-100">
+                <thead>
+                    <tr>
+                        <th width="4%" class="text-center">No.</th>
+                        <th width="10%">No. SPK <small class="text-warning opacity-75" id="editLabel">(Edit Admin)</small></th>
+                        <th width="22%">Nama Project & Dokumen</th>
+                        <th width="14%">Vendor / Klien</th>
+                        <th width="16%">Timeline Pekerjaan</th>
+                        <th width="14%">Status Akhir</th>
+                        <th width="12%">Progress</th>
+                        <th width="8%" class="text-center">Aksi</th>
+                    </tr>
+                </thead>
+                <tbody id="spkTableBody"></tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+<!-- FITUR CHAT / MENU PERCAKAPAN GAYA WHATSAPP -->
+<button class="chat-fab" onclick="toggleChatPanel()">
+    <i class="fab fa-whatsapp fa-2x"></i>
+</button>
+<div class="chat-panel" id="chatPanel">
+    <div class="chat-header">
+        <div><i class="fas fa-comments me-2"></i> Diskusi Tim - <span id="chatBranchName">Tasikmalaya</span></div>
+        <button class="btn-close btn-close-white" style="font-size: 0.8rem;" onclick="toggleChatPanel()"></button>
+    </div>
+    <div class="chat-body" id="chatBody"></div>
+    <div class="chat-footer shadow-lg">
+        <input type="text" id="chatInput" placeholder="Ketik pesan diskusi..." onkeypress="if(event.keyCode===13) sendChatMessage()">
+        <button onclick="sendChatMessage()"><i class="fas fa-paper-plane"></i></button>
+    </div>
+</div>
+
+<!-- Modal Tambah SPK (Hanya Admin) -->
+<div class="modal fade" id="addSpkModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered"><div class="modal-content border-0 shadow-lg" style="border-radius: 15px;">
+        <div class="modal-header bg-primary text-white" style="border-radius: 15px 15px 0 0;">
+            <h5 class="modal-title fw-bold" id="addSpkTitle"><i class="fas fa-plus-circle me-2"></i> Tambah SPK Baru</h5>
+            <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+        </div>
+        <div class="modal-body p-4">
+            <form id="addSpkForm">
+                <div class="mb-3"><label class="form-label fw-bold text-muted">Nomor SPK</label><input type="text" class="form-control form-control-lg bg-light border-0" id="spkNo" placeholder="Contoh: 001" required></div>
+                <div class="mb-3"><label class="form-label fw-bold text-muted">Nama Project</label><input type="text" class="form-control bg-light border-0" id="projectName" required></div>
+                <div class="mb-3"><label class="form-label fw-bold text-muted">Vendor / Pelaksana</label><input type="text" class="form-control bg-light border-0" id="vendorName" required></div>
+                <div class="row mb-3">
+                    <div class="col"><label class="form-label fw-bold text-muted">Tgl Mulai</label><input type="date" class="form-control bg-light border-0" id="startDate" required></div>
+                    <div class="col"><label class="form-label fw-bold text-muted">Target Selesai</label><input type="date" class="form-control bg-light border-0" id="endDate" required></div>
+                </div>
+                <div class="mb-4"><label class="form-label fw-bold text-muted">Upload SPK (Opsional)</label><input type="file" class="form-control bg-light border-0" id="spkFile" accept=".pdf,.doc,.docx,.jpg,.jpeg,.png"><small class="text-danger mt-1 d-block">Maksimal 5 MB per File</small></div>
+                <button type="submit" class="btn btn-primary w-100 fw-bold py-3 fs-5 rounded-pill shadow">Simpan Data ke Server</button>
+            </form>
+        </div>
+    </div></div>
+</div>
+
+<!-- Modal Update Tracking (Hanya Admin) -->
+<div class="modal fade" id="updateModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered"><div class="modal-content border-0 shadow-lg" style="border-radius: 15px;">
+        <div class="modal-header bg-warning" style="border-radius: 15px 15px 0 0;">
+            <h5 class="modal-title fw-bold text-dark"><i class="fas fa-edit me-2"></i> Update Progress Tracking</h5>
+            <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+        </div>
+        <div class="modal-body p-4">
+            <form id="updateSpkForm">
+                <input type="hidden" id="updateId">
+                <div class="row mb-3">
+                    <div class="col-md-6"><label class="form-label fw-bold text-muted">Bulan Update</label><select class="form-select bg-light border-0" id="updateMonth">
+                        <option value="Januari">Januari</option><option value="Februari">Februari</option><option value="Maret">Maret</option>
+                        <option value="April">April</option><option value="Mei">Mei</option><option value="Juni">Juni</option>
+                        <option value="Juli">Juli</option><option value="Agustus">Agustus</option><option value="September">September</option>
+                        <option value="Oktober">Oktober</option><option value="November">November</option><option value="Desember">Desember</option>
+                    </select></div>
+                    <div class="col-md-6"><label class="form-label fw-bold text-muted">Status Umum</label><select class="form-select bg-light border-0" id="updateStatus">
+                        <option value="Belum Mulai">Belum Mulai</option><option value="On Progress">On Progress</option>
+                        <option value="Tertunda">Tertunda (Pending)</option><option value="Selesai">Selesai (Done)</option>
+                    </select></div>
+                </div>
+                <div class="mb-3"><label class="form-label fw-bold text-primary">Tahapan Produksi (Detail)</label><select class="form-select border-primary" style="background-color: #f8fbff;" id="updateTahap" onchange="autoFillProgress()">
+                    <option value="Belum Mulai">- Belum Mulai -</option>
+                    <option value="1. Penerbitan Invoice">1. Penerbitan Invoice</option>
+                    <option value="2. Pengadaan Bahan">2. Pengadaan Bahan</option>
+                    <option value="3. Proses Gunting">3. Proses Gunting</option>
+                    <option value="4. Pembuatan Pola dan Sampel">4. Pembuatan Pola dan Sampel</option>
+                    <option value="5. Proses Sablon/DTF/Bordir">5. Proses Sablon/DTF/Bordir</option>
+                    <option value="6. Proses Jahit">6. Proses Jahit</option>
+                    <option value="7. Proses Finisihing/packing">7. Proses Finisihing/packing</option>
+                    <option value="8. Siap Diterima Klien">8. Siap Diterima Klien</option>
+                </select></div>
+                <div class="mb-3"><label class="form-label fw-bold text-muted">Persentase Pekerjaan (%)</label><input type="number" class="form-control form-control-lg bg-light border-0" id="updateProgress" min="0" max="100" required></div>
+                <div class="mb-3"><label class="form-label fw-bold text-muted">Catatan Kendala/Info</label><textarea class="form-control bg-light border-0" id="updateNote" rows="2"></textarea></div>
+                <div class="mb-4"><label class="form-label fw-bold text-muted">Upload Lampiran (Opsional)</label><input type="file" class="form-control bg-light border-0" id="updateFile"><small class="text-danger mt-1 d-block">Maksimal 5 MB per File</small></div>
+                <button type="submit" class="btn btn-warning w-100 fw-bold py-3 fs-5 rounded-pill shadow-sm text-dark">Simpan ke Server</button>
+            </form>
+        </div>
+    </div></div>
+</div>
+
+<!-- Modal Peringatan Project Belum Update -->
+<div class="modal fade" id="unupdatedWarningModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered modal-lg">
+        <div class="modal-content border-0 shadow-lg" style="border-radius: 15px;">
+            <div class="modal-header bg-danger text-white" style="border-radius: 15px 15px 0 0;">
+                <h5 class="modal-title fw-bold"><i class="fas fa-exclamation-triangle me-2"></i> Peringatan Project Belum Diupdate (Lebih dari 1x24 Jam)</h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body p-4">
+                <p class="text-dark mb-3 fw-bold">Berikut adalah daftar project aktif yang belum mendapatkan pembaruan:</p>
+                <ul class="list-group mb-0 shadow-sm" id="unupdatedList" style="border-radius: 10px;"></ul>
+            </div>
+            <div class="modal-footer border-0 bg-light" style="border-radius: 0 0 15px 15px;">
+                <button type="button" class="btn btn-secondary fw-bold rounded-pill px-4" data-bs-dismiss="modal">Saya Mengerti</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Modal History, Archive & Preview (Bisa diakses Semua Orang) -->
+<div class="modal fade" id="historyModal" tabindex="-1"><div class="modal-dialog modal-lg modal-dialog-centered"><div class="modal-content border-0 shadow-lg" style="border-radius: 15px;"><div class="modal-header bg-info text-white" style="border-radius: 15px 15px 0 0;"><h5 class="modal-title fw-bold"><i class="fas fa-history me-2"></i> Riwayat Perjalanan Project</h5><button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button></div><div class="modal-body p-4"><div class="p-3 bg-light rounded mb-3"><h5 class="fw-bold text-primary mb-1" id="historyProjectName"></h5><span class="badge bg-secondary" id="historySpkNo"></span></div><div class="table-responsive"><table class="table table-borderless align-middle"><thead class="table-light rounded"><tr><th>Bulan Laporan</th><th>Tanggal Upload</th><th>Status & Tahapan</th><th>Progress Pengerjaan</th></tr></thead><tbody id="historyTableBody"></tbody></table></div></div></div></div></div>
+<div class="modal fade" id="archiveModal" tabindex="-1"><div class="modal-dialog modal-lg modal-dialog-centered"><div class="modal-content border-0 shadow-lg" style="border-radius: 15px;"><div class="modal-header bg-secondary text-white" style="border-radius: 15px 15px 0 0;"><h5 class="modal-title fw-bold"><i class="fas fa-folder-open me-2"></i> Brankas Arsip File</h5><button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button></div><div class="modal-body p-4"><div class="p-3 bg-light rounded mb-3"><h5 class="fw-bold text-dark mb-0" id="archiveProjectName"></h5></div><div class="table-responsive"><table class="table table-hover align-middle"><thead class="table-light"><tr><th>Jenis File</th><th>Nama Berkas</th><th class="text-center">Aksi Dokumen</th></tr></thead><tbody id="archiveTableBody"></tbody></table></div></div></div></div></div>
+<div class="modal fade" id="previewModal" tabindex="-1"><div class="modal-dialog modal-xl modal-dialog-centered"><div class="modal-content border-0 shadow-lg" style="border-radius: 15px;"><div class="modal-header bg-dark text-white" style="border-radius: 15px 15px 0 0;"><h5 class="modal-title fw-bold" id="previewModalTitle"></h5><button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button></div><div class="modal-body text-center p-4"><div class="preview-container mb-4 shadow-sm" id="previewContainer"><img id="previewImg" src="" style="display:none;"><iframe id="previewPdf" src="" style="display:none;"></iframe><div id="previewFallback" style="display:none;" class="text-muted"><i class="fas fa-file-word fa-4x mb-3 text-secondary"></i><br>Browser tidak mendukung pratinjau dokumen ini.<br>Silakan unduh untuk membaca isinya.</div></div><a id="downloadBtn" href="#" download="" class="btn btn-success fw-bold px-4 rounded-pill shadow-sm"><i class="fas fa-download me-2"></i> Unduh File Asli</a></div></div></div></div>
+
+<div class="toast-container position-fixed bottom-0 end-0 p-4" id="toastContainer" style="z-index: 1055;"></div>
+
+<!-- Bootstrap 5 JS -->
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+
+<script>
+    // ==========================================
+    // MASUKKAN KODE FIREBASE ANDA DI SINI
+    // ==========================================
+    const firebaseConfig = {
+        apiKey: "ISI_DENGAN_API_KEY_ANDA",
+        authDomain: "ISI_DENGAN_AUTH_DOMAIN_ANDA",
+        databaseURL: "ISI_DENGAN_DATABASE_URL_ANDA",
+        projectId: "ISI_DENGAN_PROJECT_ID_ANDA",
+        storageBucket: "ISI_DENGAN_STORAGE_BUCKET_ANDA",
+        messagingSenderId: "ISI_DENGAN_MESSAGING_SENDER_ID_ANDA",
+        appId: "ISI_DENGAN_APP_ID_ANDA"
+    };
+
+    // Inisialisasi Firebase Database
+    firebase.initializeApp(firebaseConfig);
+    const database = firebase.database();
+
+
+    // --- AUTENTIKASI PASSWORD MASUK APLIKASI ---
+    function checkAppLogin() {
+        const inputPass = document.getElementById('appPasswordInput').value;
+        if (inputPass === "tauhid2026") {
+            document.getElementById('loginOverlay').style.display = 'none';
+            sessionStorage.setItem('isAppUnlocked', 'true');
+            loadData();
+        } else {
+            alert("Password Akses Salah!");
+            document.getElementById('appPasswordInput').value = '';
+        }
+    }
+
+    window.addEventListener('DOMContentLoaded', () => {
+        if (sessionStorage.getItem('isAppUnlocked') === 'true') {
+            document.getElementById('loginOverlay').style.display = 'none';
+            loadData();
+        }
+    });
+
+    // --- AUTENTIKASI ADMIN & VIEWER CONTROLS ---
+    let isAdmin = sessionStorage.getItem('isAdminUser') === 'true';
+    let warningShown = { Tasikmalaya: false, Makassar: false };
+
+    function toggleLogin() {
+        if (isAdmin) {
+            if(confirm("Yakin ingin Keluar dari Mode Admin?")) {
+                isAdmin = false;
+                sessionStorage.removeItem('isAdminUser');
+                updateUI();
+            }
+        } else {
+            let pass = prompt("Masukkan Password Admin:");
+            if (pass === "admin123") {
+                isAdmin = true;
+                sessionStorage.setItem('isAdminUser', 'true');
+                updateUI();
+            } else if (pass !== null) {
+                alert("Password Salah!");
+            }
+        }
+    }
+
+    function updateUI() {
+        const loginBtn = document.getElementById('loginBtn');
+        const modeStatus = document.getElementById('modeStatus');
+        const btnAddSpk = document.getElementById('btnAddSpk');
+        const editLabel = document.getElementById('editLabel');
+
+        if (isAdmin) {
+            loginBtn.classList.replace('btn-light', 'btn-danger');
+            loginBtn.innerHTML = '<i class="fas fa-sign-out-alt text-white me-1"></i> <span class="text-white">Logout Admin</span>';
+            modeStatus.innerHTML = "ADMIN (Bisa Mengedit & Menghapus Data)";
+            modeStatus.className = "badge bg-success ms-1";
+            btnAddSpk.style.display = "inline-block";
+            editLabel.style.display = "inline-block";
+        } else {
+            loginBtn.classList.replace('btn-danger', 'btn-light');
+            loginBtn.innerHTML = '<i class="fas fa-user-shield text-primary me-1"></i> <span class="text-primary">Login Admin</span>';
+            modeStatus.innerHTML = "VIEWER (Hanya Lihat Dokumen & Riwayat)";
+            modeStatus.className = "badge bg-danger ms-1";
+            btnAddSpk.style.display = "none";
+            editLabel.style.display = "none";
+        }
+        
+        renderTable(document.getElementById('searchInput').value.toLowerCase());
+        renderChatMessages(); 
+    }
+
+    let currentLocation = 'Tasikmalaya';
+    let spkData = [];
+    let chatMessages = []; 
+
+    function switchLocation(location) {
+        currentLocation = location;
+        document.getElementById('mainTitle').innerHTML = `<i class="fas fa-clipboard-list text-primary me-2"></i> Kontrol SPK - ${location}`;
+        document.getElementById('addSpkTitle').innerHTML = `<i class="fas fa-plus-circle me-2"></i> Tambah SPK Baru - ${location}`;
+        document.getElementById('chatBranchName').innerText = location;
+        loadData();
+    }
+
+
+    // --- FUNGSI PENARIKAN DATA KE SERVER CLOUD (FIREBASE) ---
+    async function loadData() {
+        if (sessionStorage.getItem('isAppUnlocked') !== 'true') return;
+
+        // Trik Otomatis Mengunggah file tersangkut di HP ke Firebase Server saat dibuka pertama kali
+        let tersangkutTasik = await localforage.getItem('spkData_Tasikmalaya');
+        if(tersangkutTasik && tersangkutTasik.length > 0) {
+            database.ref('spkData/Tasikmalaya').set(tersangkutTasik);
+            localforage.removeItem('spkData_Tasikmalaya');
+        }
+        let tersangkutMakassar = await localforage.getItem('spkData_Makassar');
+        if(tersangkutMakassar && tersangkutMakassar.length > 0) {
+            database.ref('spkData/Makassar').set(tersangkutMakassar);
+            localforage.removeItem('spkData_Makassar');
+        }
+
+        // Mulai ambil data dari Server Online secara Real-Time
+        database.ref('spkData/' + currentLocation).on('value', (snapshot) => {
+            spkData = snapshot.val() || [];
+            if(!Array.isArray(spkData)) spkData = Object.values(spkData); // Mencegah error jika data kosong di tengah
+            spkData.sort((a, b) => a.spkNo.localeCompare(b.spkNo, undefined, { numeric: true, sensitivity: 'base' }));
+            document.getElementById('searchInput').value = '';
+            updateUI(); 
+            checkDeadlineAlarms();
+            checkUnupdatedAlarms();
+        });
+
+        // Ambil pesan Live Chat dari server Online
+        database.ref('chatData/' + currentLocation).on('value', (snapshot) => {
+            chatMessages = snapshot.val() || [];
+            if(!Array.isArray(chatMessages)) chatMessages = Object.values(chatMessages);
+            renderChatMessages();
+        });
+    }
+
+    // --- FUNGSI MENGIRIM DATA BARU KE SERVER ONLINE ---
+    function saveData() { 
+        spkData.sort((a, b) => a.spkNo.localeCompare(b.spkNo, undefined, { numeric: true, sensitivity: 'base' }));
+        database.ref('spkData/' + currentLocation).set(spkData).catch((error) => {
+            alert("Gagal menyambung ke server Internet: " + error.message);
+        });
+    }
+
+    // --- FUNGSI LIVE CHAT TIM ---
+    function toggleChatPanel() {
+        const panel = document.getElementById('chatPanel');
+        if (panel.style.display === 'flex') {
+            panel.style.display = 'none';
+        } else {
+            panel.style.display = 'flex';
+            scrollChatToBottom();
+        }
+    }
+
+    function scrollChatToBottom() {
+        const body = document.getElementById('chatBody');
+        body.scrollTop = body.scrollHeight;
+    }
+
+    function saveChatData() {
+        database.ref('chatData/' + currentLocation).set(chatMessages);
+    }
+
+    function renderChatMessages() {
+        const body = document.getElementById('chatBody');
+        body.innerHTML = '';
+        if (chatMessages.length === 0) {
+            body.innerHTML = `<div class="text-center mt-3"><span class="badge bg-light text-muted">Belum ada obrolan di cabang ini</span></div>`;
+            return;
+        }
+        chatMessages.forEach(msg => {
+            const bubbleClass = msg.sender === 'Admin' ? 'msg-admin' : 'msg-viewer';
+            body.innerHTML += `
+                <div class="msg-bubble ${bubbleClass}">
+                    <div class="msg-sender">${msg.sender}</div>
+                    <div>${msg.text}</div>
+                    <div class="msg-time">${msg.time}</div>
+                </div>
+            `;
+        });
+        scrollChatToBottom();
+    }
+
+    function sendChatMessage() {
+        const input = document.getElementById('chatInput');
+        const text = input.value.trim();
+        if (!text) return;
+        const now = new Date();
+        const timeStr = now.getHours().toString().padStart(2, '0') + ':' + now.getMinutes().toString().padStart(2, '0');
+        chatMessages.push({
+            sender: isAdmin ? 'Admin' : 'Viewer',
+            text: text,
+            time: timeStr,
+            timestamp: now.getTime()
+        });
+        saveChatData(); // Lempar chat langsung ke cloud
+        input.value = '';
+    }
+
+    // PENCEGAHAN EDIT OLEH VIEWER PADA NOMOR SPK
+    function updateSpkNo(index, newSpkValue) {
+        if (!isAdmin) return; 
+        const cleanValue = newSpkValue.trim();
+        if (cleanValue === "") {
+            alert("Nomor SPK tidak boleh kosong!");
+            renderTable(document.getElementById('searchInput').value.toLowerCase());
+            return;
+        }
+        if (cleanValue !== spkData[index].spkNo) {
+            spkData[index].spkNo = cleanValue;
+            saveData(); 
+            renderTable(document.getElementById('searchInput').value.toLowerCase()); 
+        }
+    }
+
+    function getBase64(file) { return new Promise((resolve, reject) => { const reader = new FileReader(); reader.readAsDataURL(file); reader.onload = () => resolve({ name: file.name, type: file.type, data: reader.result }); reader.onerror = error => reject(error); }); }
+    function validateFile(file) { if (file && file.size > 5242880) { alert(`File "${file.name}" terlalu besar! Maksimal 5 MB.`); return false; } return true; }
+
+    document.getElementById('searchInput').addEventListener('input', function(e) { renderTable(e.target.value.toLowerCase()); });
+
+    function autoFillProgress() {
+        const tahap = document.getElementById('updateTahap').value;
+        const progressInput = document.getElementById('updateProgress');
+        const statusInput = document.getElementById('updateStatus');
+        
+        let progress = 0; let autoStatus = "On Progress";
+        switch(tahap) {
+            case "Belum Mulai": progress = 0; autoStatus = "Belum Mulai"; break;
+            case "1. Penerbitan Invoice": progress = 10; break;
+            case "2. Pengadaan Bahan": progress = 25; break;
+            case "3. Proses Gunting": progress = 40; break;
+            case "4. Pembuatan Pola dan Sampel": progress = 55; break;
+            case "5. Proses Sablon/DTF/Bordir": progress = 70; break;
+            case "6. Proses Jahit": progress = 85; break;
+            case "7. Proses Finisihing/packing": progress = 95; break;
+            case "8. Siap Diterima Klien": progress = 100; autoStatus = "Selesai"; break;
+        }
+        progressInput.value = progress; statusInput.value = autoStatus;
+    }
+
+    function openArchiveModal(index) {
+        const spk = spkData[index]; document.getElementById('archiveProjectName').innerText = spk.projectName;
+        const tbody = document.getElementById('archiveTableBody'); tbody.innerHTML = '';
+        let total = 0;
+        if (spk.spkFile) { total++; tbody.innerHTML += `<tr><td><span class="badge bg-primary px-3 py-2 rounded-pill">Dokumen Awal</span></td><td class="text-truncate fw-bold text-secondary" style="max-width: 250px;">${spk.spkFile.name}</td><td class="text-center"><button class="btn btn-sm btn-success rounded-pill px-3 shadow-sm" onclick="openPreviewModal('spk', ${index})"><i class="fas fa-eye me-1"></i> Lihat</button></td></tr>`; }
+        if (spk.history && spk.history.length > 0) {
+            spk.history.forEach((rec, hIndex) => { if (rec.updateFile) { total++; tbody.innerHTML += `<tr><td><span class="badge bg-success px-3 py-2 rounded-pill">Laporan ${rec.month}</span><br><small class="text-muted d-block mt-1">${rec.date}</small></td><td class="text-truncate fw-bold text-secondary" style="max-width: 250px;">${rec.updateFile.name}</td><td class="text-center"><button class="btn btn-sm btn-success rounded-pill px-3 shadow-sm" onclick="openPreviewModal('history', ${index}, ${hIndex})"><i class="fas fa-eye me-1"></i> Lihat</button></td></tr>`; } });
+        }
+        if (total === 0) tbody.innerHTML = `<tr><td colspan="3" class="text-center text-muted py-5"><i class="fas fa-folder-open fa-3x mb-3 opacity-25"></i><br>Belum ada dokumen yang diunggah.</td></tr>`;
+        new bootstrap.Modal(document.getElementById('archiveModal')).show();
+    }
+
+    function openPreviewModal(source, index, hIndex = null) {
+        let fileObj = source === 'spk' ? spkData[index].spkFile : spkData[index].history[hIndex].updateFile;
+        if (!fileObj) return;
+        document.getElementById('previewModalTitle').innerHTML = `<i class="fas fa-file-alt me-2"></i> ${fileObj.name}`;
+        const img = document.getElementById('previewImg'), pdf = document.getElementById('previewPdf'), fallback = document.getElementById('previewFallback');
+        img.style.display = 'none'; pdf.style.display = 'none'; fallback.style.display = 'none';
+        if (fileObj.type.startsWith('image/')) { img.src = fileObj.data; img.style.display = 'block'; } 
+        else if (fileObj.type === 'application/pdf') { pdf.src = fileObj.data; pdf.style.display = 'block'; } 
+        else { fallback.style.display = 'block'; }
+        document.getElementById('downloadBtn').href = fileObj.data; document.getElementById('downloadBtn').download = fileObj.name;
+        new bootstrap.Modal(document.getElementById('previewModal')).show();
+    }
+
+    function checkUnupdatedAlarms() {
+        const warningList = document.getElementById('unupdatedList');
+        warningList.innerHTML = '';
+        let hasUnupdated = false; let needsSave = false; const now = Date.now();
+
+        spkData.forEach(spk => {
+            if (spk.status !== 'Selesai') {
+                if (!spk.lastUpdateTimestamp) {
+                    let stDate = new Date(spk.startDate).getTime();
+                    spk.lastUpdateTimestamp = isNaN(stDate) ? now : stDate;
+                    needsSave = true;
+                }
+                const hoursPassed = (now - spk.lastUpdateTimestamp) / (1000 * 60 * 60);
+                if (hoursPassed >= 24) {
+                    hasUnupdated = true;
+                    let days = Math.floor(hoursPassed / 24); let hours = Math.floor(hoursPassed % 24);
+                    let timeText = days > 0 ? `${days} hari ${hours} jam` : `${hours} jam`;
+                    
+                    warningList.innerHTML += `
+                        <li class="list-group-item list-group-item-danger d-flex justify-content-between align-items-center border-0 mb-2 rounded shadow-sm">
+                            <div>
+                                <span class="fw-bold fs-5 text-dark">${spk.spkNo}</span> - <span class="text-dark">${spk.projectName}</span>
+                                <br><small class="text-danger fw-bold"><i class="far fa-clock me-1"></i> Terbengkalai: ${timeText} lalu</small>
+                            </div>
+                            <span class="badge bg-danger rounded-circle p-2 fs-6 shadow-sm"><i class="fas fa-exclamation"></i></span>
+                        </li>`;
+                }
+            }
+        });
+
+        if (needsSave) saveData();
+        if (hasUnupdated && !warningShown[currentLocation]) {
+            const warningModal = new bootstrap.Modal(document.getElementById('unupdatedWarningModal'));
+            warningModal.show();
+            warningShown[currentLocation] = true;
+        }
+    }
+
+    function checkDeadlineAlarms() {
+        const toast = document.getElementById('toastContainer'); toast.innerHTML = ''; 
+        const today = new Date(); today.setHours(0, 0, 0, 0);
+        spkData.forEach(spk => {
+            if (spk.status === 'Selesai') return; 
+            const tgt = new Date(spk.endDate); tgt.setHours(0, 0, 0, 0);
+            const diffDays = Math.ceil((tgt - today) / (1000 * 60 * 60 * 24));
+            if (diffDays <= 4 && diffDays >= 0) toast.innerHTML += `<div class="toast align-items-center text-bg-warning border-0 show mb-3 shadow-lg" style="border-radius:15px;"><div class="d-flex"><div class="toast-body fs-6"><strong><i class="fas fa-bell blink-warning text-danger fs-5"></i> DEADLINE DEKAT!</strong><br>Project <b class="text-dark">${spk.projectName}</b> sisa <b class="text-danger">${diffDays} Hari</b>!</div><button type="button" class="btn-close me-3 m-auto" data-bs-dismiss="toast"></button></div></div>`;
+            else if (diffDays < 0) toast.innerHTML += `<div class="toast align-items-center text-bg-danger border-0 show mb-3 shadow-lg text-white" style="border-radius:15px;"><div class="d-flex"><div class="toast-body fs-6"><strong><i class="fas fa-exclamation-triangle fs-5"></i> PROJECT TELAT!</strong><br>Project <b>${spk.projectName}</b> sudah telat <b>${Math.abs(diffDays)} Hari</b>!</div><button type="button" class="btn-close btn-close-white me-3 m-auto" data-bs-dismiss="toast"></button></div></div>`;
+        });
+    }
+
+    function renderTable(searchTerm = "") {
+        const tbody = document.getElementById('spkTableBody');
+        tbody.innerHTML = '';
+        let visibleCount = 0; const today = new Date(); today.setHours(0, 0, 0, 0);
+
+        spkData.forEach((spk, index) => {
+            if (searchTerm && !spk.projectName.toLowerCase().includes(searchTerm) && !spk.spkNo.toLowerCase().includes(searchTerm)) return;
+            visibleCount++;
+
+            let statusClass = 'bg-danger';           
+            let columnBgClass = 'bg-solid-merah';          
+            
+            if(spk.status === 'On Progress') { statusClass = 'bg-warning text-dark'; columnBgClass = 'bg-solid-kuning'; } 
+            else if(spk.status === 'Tertunda') { statusClass = 'bg-primary'; columnBgClass = 'bg-solid-biru'; } 
+            else if(spk.status === 'Selesai') { statusClass = 'bg-success'; columnBgClass = 'bg-solid-hijau'; }
+
+            let tahapSaatIni = spk.tahap || 'Belum Mulai';
+
+            let totalFiles = (spk.spkFile ? 1 : 0);
+            if (spk.history) spk.history.forEach(h => { if(h.updateFile) totalFiles++; });
+            let fileHtml = totalFiles > 0 ? `<br><button class="btn btn-sm btn-light mt-2 shadow-sm fw-bold px-3 py-1" onclick="openArchiveModal(${index})" title="Lihat arsip file"><i class="fas fa-folder-open text-primary me-1"></i> Buka Arsip File (${totalFiles})</button>` : '';
+
+            let deadlineBadge = '';
+            if (spk.status !== 'Selesai') {
+                const tgtDate = new Date(spk.endDate); tgtDate.setHours(0, 0, 0, 0);
+                const diffDays = Math.ceil((tgtDate - today) / (1000 * 60 * 60 * 24));
+                if (diffDays <= 4 && diffDays >= 0) deadlineBadge = `<br><span class="badge bg-warning text-dark mt-2 px-2 py-1 blink-warning border border-warning"><i class="fas fa-clock"></i> Sisa ${diffDays} Hari</span>`;
+                else if (diffDays < 0) deadlineBadge = `<br><span class="badge bg-danger mt-2 px-2 py-1 border border-danger shadow-sm"><i class="fas fa-exclamation-circle"></i> Telat ${Math.abs(diffDays)} Hari</span>`;
+            }
+
+            let editableAttr = isAdmin ? `contenteditable="true" title="Klik untuk merubah Nomor SPK" onblur="updateSpkNo(${index}, this.innerText)" onkeypress="if(event.keyCode===13) { event.preventDefault(); this.blur(); }"` : '';
+            let editIcon = isAdmin ? `<i class="fas fa-pencil-alt editable-icon"></i>` : '';
+            
+            let actionButtons = `<button class="btn btn-sm btn-info text-white mb-2 shadow-sm rounded-pill" onclick="openHistoryModal(${index})"><i class="fas fa-history me-1"></i> Riwayat</button>`;
+            
+            if (isAdmin) {
+                actionButtons += `
+                    <button class="btn btn-sm btn-warning mb-2 shadow-sm rounded-pill text-dark fw-bold" onclick="openUpdateModal(${index})"><i class="fas fa-edit me-1"></i> Update</button>
+                    <button class="btn btn-sm btn-danger shadow-sm rounded-pill" onclick="deleteSpk(${index})"><i class="fas fa-trash-alt me-1"></i> Hapus</button>
+                `;
+            }
+
+            const row = `
+                <tr>
+                    <td class="text-center fw-bold text-secondary">${visibleCount}</td>
+                    <td class="fw-extrabold text-primary fs-6 ${isAdmin ? 'editable-cell' : ''}" ${editableAttr}>
+                        ${spk.spkNo} ${editIcon}
+                    </td>
+                    <td class="${columnBgClass}">
+                        <div class="fw-bolder fs-5 text-dark mb-1">${spk.projectName}</div>
+                        <small class="text-dark fw-bold" style="opacity: 0.85;"><i class="fas fa-sync-alt me-1"></i> Terakhir Diperbarui: ${spk.lastMonthUpdate}</small>
+                        ${fileHtml}
+                    </td>
+                    <td class="fw-bold text-secondary">${spk.vendor}</td>
+                    <td><small class="text-muted d-block mb-1">Mulai: ${spk.startDate}</small><small class="text-dark fw-bold d-block">Target: ${spk.endDate}</small>${deadlineBadge}</td>
+                    <td>
+                        <span class="badge ${statusClass} px-3 py-2 rounded-pill shadow-sm fs-6 mb-2">${spk.status}</span><br>
+                        <span class="badge bg-white text-dark border border-secondary py-2 px-2 shadow-sm" style="font-size:11px; white-space: normal; text-align: left; width: 100%;">
+                            <i class="fas fa-tasks text-primary me-1"></i> ${tahapSaatIni}
+                        </span>
+                    </td>
+                    <td>
+                        <div class="d-flex justify-content-between mb-1 fw-bold text-dark"><small>Progress</small><small>${spk.progress}%</small></div>
+                        <div class="progress"><div class="progress-bar ${spk.progress == 100 ? 'bg-success' : 'bg-primary progress-bar-striped progress-bar-animated'}" style="width: ${spk.progress}%"></div></div>
+                    </td>
+                    <td><div class="btn-group-vertical w-100">${actionButtons}</div></td>
+                </tr>
+            `;
+            tbody.innerHTML += row;
+        });
+
+        if(visibleCount === 0) tbody.innerHTML = `<tr><td colspan="8" class="text-center text-muted py-5"><i class="fas fa-search fa-3x mb-3 opacity-25"></i><br>Tidak ada data SPK yang ditemukan.</td></tr>`;
+    }
+
+    document.getElementById('addSpkForm').addEventListener('submit', async function(e) {
+        e.preventDefault(); 
+        if(!isAdmin) return; 
+        const fileInput = document.getElementById('spkFile'); let fileData = null;
+        if (fileInput.files.length > 0) { if (!validateFile(fileInput.files[0])) return; fileData = await getBase64(fileInput.files[0]); }
+        
+        spkData.push({ 
+            spkNo: document.getElementById('spkNo').value, projectName: document.getElementById('projectName').value, 
+            vendor: document.getElementById('vendorName').value, startDate: document.getElementById('startDate').value, 
+            endDate: document.getElementById('endDate').value, status: 'Belum Mulai', tahap: 'Belum Mulai', 
+            progress: 0, lastMonthUpdate: 'Belum ada', lastUpdateTimestamp: Date.now(), spkFile: fileData, history: [] 
+        });
+        saveData(); this.reset(); bootstrap.Modal.getInstance(document.getElementById('addSpkModal')).hide(); 
+        document.getElementById('searchInput').value = ''; 
+    });
+
+    function openUpdateModal(index) {
+        if(!isAdmin) return; 
+        const spk = spkData[index]; document.getElementById('updateId').value = index; document.getElementById('updateStatus').value = spk.status;
+        document.getElementById('updateTahap').value = spk.tahap || 'Belum Mulai'; document.getElementById('updateProgress').value = spk.progress;
+        document.getElementById('updateNote').value = ''; document.getElementById('updateFile').value = ''; 
+        document.getElementById('updateMonth').value = ["Januari", "Februari", "Maret", "April", "Mei", "Juni", "Juli", "Agustus", "September", "Oktober", "November", "Desember"][new Date().getMonth()];
+        new bootstrap.Modal(document.getElementById('updateModal')).show();
+    }
+
+    document.getElementById('updateSpkForm').addEventListener('submit', async function(e) {
+        e.preventDefault(); 
+        if(!isAdmin) return; 
+        const index = document.getElementById('updateId').value, inStatus = document.getElementById('updateStatus').value, inTahap = document.getElementById('updateTahap').value, inProg = document.getElementById('updateProgress').value;
+        let finStatus = (inProg == 100 || inTahap === '8. Siap Diterima Klien') ? 'Selesai' : inStatus; let finProg = inTahap === '8. Siap Diterima Klien' ? 100 : inProg; 
+        const fileInput = document.getElementById('updateFile'); let fileData = null;
+        if (fileInput.files.length > 0) { if (!validateFile(fileInput.files[0])) return; fileData = await getBase64(fileInput.files[0]); }
+
+        spkData[index].status = finStatus; spkData[index].tahap = inTahap; spkData[index].progress = finProg; 
+        spkData[index].lastMonthUpdate = document.getElementById('updateMonth').value; spkData[index].lastUpdateTimestamp = Date.now();
+        spkData[index].history.push({ month: document.getElementById('updateMonth').value, date: new Date().toLocaleDateString('id-ID'), status: finStatus, tahap: inTahap, progress: finProg, note: document.getElementById('updateNote').value, updateFile: fileData });
+        
+        saveData(); bootstrap.Modal.getInstance(document.getElementById('updateModal')).hide(); 
+    });
+
+    function openHistoryModal(index) {
+        const spk = spkData[index]; document.getElementById('historyProjectName').innerText = spk.projectName; document.getElementById('historySpkNo').innerText = 'No SPK: ' + spk.spkNo;
+        const tbody = document.getElementById('historyTableBody'); tbody.innerHTML = '';
+        if(!spk.history || spk.history.length === 0) tbody.innerHTML = `<tr><td colspan="4" class="text-center text-muted py-4"><i class="fas fa-history fa-2x opacity-25 mb-2"></i><br>Belum ada riwayat tercatat.</td></tr>`;
+        else [...spk.history].reverse().forEach((r) => {
+            let bg = r.status === 'Belum Mulai' ? 'bg-danger' : r.status === 'On Progress' ? 'bg-warning text-dark' : r.status === 'Tertunda' ? 'bg-primary' : r.status === 'Selesai' ? 'bg-success' : 'bg-secondary';
+            tbody.innerHTML += `
+                <tr class="border-bottom">
+                    <td class="fw-bold text-dark"><i class="far fa-calendar-alt text-primary me-2"></i>${r.month}<br><small class="text-muted fw-normal mt-1 d-block"><i class="far fa-comment-dots me-1"></i>${r.note || 'Tidak ada catatan'}</small></td>
+                    <td class="text-secondary fw-semibold">${r.date}</td>
+                    <td><span class="badge ${bg} px-2 py-1 rounded-pill mb-1">${r.status}</span><br><small class="text-primary fw-bold" style="font-size: 11px;"><i class="fas fa-tasks me-1"></i>${r.tahap || 'Belum Mulai'}</small></td>
+                    <td class="align-middle"><div class="progress" style="height: 12px; border-radius:10px;"><div class="progress-bar ${r.progress == 100 ? 'bg-success' : 'bg-primary'}" style="width: ${r.progress}%;"></div></div><div class="text-end mt-1"><small class="fw-bold">${r.progress}%</small></div></td>
+                </tr>`;
+        });
+        new bootstrap.Modal(document.getElementById('historyModal')).show();
+    }
+
+    function deleteSpk(index) {
+        if(!isAdmin) return; 
+        if(confirm(`TINDAKAN PERMANEN!\nYakin ingin menghapus SPK ini beserta seluruh file lampiran dan riwayatnya?`)) { 
+            spkData.splice(index, 1); saveData(); 
+        }
+    }
+
+    // Inisialisasi awal saat web dibuka
+    window.onload = () => {
+        // Jika belum terkunci, abaikan, jika sudah terkunci, langsung buka Tasikmalaya
+        if (sessionStorage.getItem('isAppUnlocked') === 'true') {
+            switchLocation('Tasikmalaya');
+        }
+    };
+</script>
+</body>
+</html>
